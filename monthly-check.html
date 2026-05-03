@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>Monthly Load Check — Eccleshall CFR</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    .month-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+    }
+    .month-item:last-child { border-bottom: none; }
+    .month-item.flagged { background: var(--red-light); }
+    .month-item-name { flex: 1; line-height: 1.4; }
+    .month-item-qty  { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
+
+    .expiry-inputs {
+      display: none;
+      gap: 6px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .month-item.show-expiry .expiry-inputs { display: flex; }
+
+    .expiry-inputs select {
+      font-size: 13px;
+      padding: 4px 6px;
+      border: 1.5px solid var(--border);
+      border-radius: 6px;
+      background: white;
+      color: var(--text);
+      appearance: none;
+      -webkit-appearance: none;
+      min-width: 60px;
+    }
+
+    .item-flag-btn {
+      min-width: 28px; min-height: 28px;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      border: 2px solid var(--border);
+      background: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px;
+      flex-shrink: 0;
+      transition: all .15s;
+      color: var(--text-muted);
+    }
+    .month-item.ok .item-flag-btn     { background: var(--green); border-color: var(--green); color: white; }
+    .month-item.flagged .item-flag-btn { background: var(--red);   border-color: var(--red);   color: white; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <span class="header-logo">RC0681 <span>Monthly Load Check</span></span>
+    <span id="header-user"></span>
+    <span id="sync-badge" class="sync-indicator sync-ok"></span>
+  </header>
+
+  <main class="main-content">
+    <div id="success-msg" class="alert alert-success hidden">
+      <span class="alert-icon">✓</span>
+      <span>Monthly check submitted successfully.</span>
+    </div>
+
+    <div class="alert alert-info">
+      <span class="alert-icon">ℹ</span>
+      <span>Tap ✓ to confirm each item is present and compliant. Tap ✗ to flag an issue. For consumables with expiry dates, enter the month/year — optional but helps track compliance.</span>
+    </div>
+
+    <div class="card" style="padding:0 0 0;">
+      <div style="padding:14px 16px; border-bottom:1px solid var(--border);">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <div class="form-group mb-0" style="flex:1; max-width:180px;">
+            <label class="form-label" for="check-month">Check Month <span class="req">*</span></label>
+            <input id="check-month" class="form-input" type="month">
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="markAllOk()">Mark All OK</button>
+        </div>
+      </div>
+      <div id="checklist-container"></div>
+    </div>
+
+    <div class="card">
+      <div class="form-group mb-0">
+        <label class="form-label" for="check-notes">Issues / Notes</label>
+        <textarea id="check-notes" class="form-textarea" placeholder="Describe any missing or non-compliant items, including actions taken…" style="min-height:100px;"></textarea>
+      </div>
+    </div>
+
+    <button id="submit-btn" class="btn btn-primary btn-block btn-lg">Submit Monthly Check</button>
+    <div style="height:8px;"></div>
+  </main>
+
+  <nav id="bottom-nav" class="bottom-nav"></nav>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/monthly-check.js"></script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+/api/stats
+  Access-Control-Allow-Origin: https://eccleshallcfrs-site.pages.dev
+  Access-Control-Allow-Methods: GET
+  Cache-Control: public, max-age=300

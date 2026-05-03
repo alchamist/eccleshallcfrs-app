@@ -1,0 +1,17 @@
+name = "eccleshallcfrs-app"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+# After creating KV namespaces in the Cloudflare dashboard, paste the IDs below.
+# Run: npx wrangler kv:namespace create CFR_USERS
+#      npx wrangler kv:namespace create CFR_DATA
+
+[[kv_namespaces]]
+binding = "CFR_USERS"
+id = "REPLACE_WITH_CFR_USERS_KV_ID"
+preview_id = "REPLACE_WITH_CFR_USERS_PREVIEW_KV_ID"
+
+[[kv_namespaces]]
+binding = "CFR_DATA"
+id = "REPLACE_WITH_CFR_DATA_KV_ID"
+preview_id = "REPLACE_WITH_CFR_DATA_PREVIEW_KV_ID"
