@@ -1,7 +1,6 @@
 const CACHE = 'cfr-v1';
 
 const STATIC = [
-  '/',
   '/index.html',
   '/dashboard.html',
   '/vehicle-shift.html',
@@ -25,7 +24,12 @@ const STATIC = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(STATIC)));
+  // allSettled so one bad URL never aborts the whole install
+  e.waitUntil(
+    caches.open(CACHE).then(cache =>
+      Promise.allSettled(STATIC.map(url => cache.add(url)))
+    )
+  );
   self.skipWaiting();
 });
 
@@ -42,15 +46,27 @@ self.addEventListener('fetch', e => {
   const { request } = e;
   const url = new URL(request.url);
 
-  // Never intercept API calls — app.js handles offline fallback
+  if (request.method !== 'GET') return;
+  if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
 
-  // Cache-first for static assets
+  // Navigation requests: network-first so redirects and auth work correctly;
+  // fall back to cached page only when offline.
+  if (request.mode === 'navigate') {
+    e.respondWith(
+      fetch(request).catch(() =>
+        caches.match(request).then(r => r || caches.match('/index.html'))
+      )
+    );
+    return;
+  }
+
+  // Sub-resources (CSS, JS, images): cache-first
   e.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
       return fetch(request).then(res => {
-        if (res.ok && request.method === 'GET') {
+        if (res.ok && res.type === 'basic') {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(request, clone));
         }
@@ -60,7 +76,6 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// Background sync — tell the client to flush its IndexedDB queue
 self.addEventListener('sync', e => {
   if (e.tag === 'cfr-sync') {
     e.waitUntil(
