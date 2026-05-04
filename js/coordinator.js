@@ -162,13 +162,14 @@ async function loadUsers() {
       <div class="card" style="margin-bottom:10px; padding:14px;">
         <div class="flex items-center justify-between gap-2">
           <div>
-            <div class="font-semi">${u.name}${u.callsign ? ` <span class="text-muted text-sm">(${u.callsign})</span>` : ''}</div>
+            <div class="font-semi">${u.name}${u.prf_number ? ` <span class="text-muted text-sm">(PRF ${u.prf_number})</span>` : ''}</div>
             <div class="text-sm text-muted" style="margin-top:2px;">
               ${(u.roles || []).join(', ')}
             </div>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2" style="flex-shrink:0;">
             <span class="badge ${u.active ? 'badge-green' : 'badge-grey'}">${u.active ? 'Active' : 'Disabled'}</span>
+            <button class="btn btn-sm btn-ghost" onclick="openEditModal(${JSON.stringify(u).replace(/"/g, '&quot;')})">Edit</button>
             ${u.active
               ? `<button class="btn btn-sm btn-ghost" onclick="toggleUser('${u.access_key}', false)">Disable</button>`
               : `<button class="btn btn-sm btn-success" onclick="toggleUser('${u.access_key}', true)">Enable</button>`
@@ -188,9 +189,9 @@ function populateExportResponders(users) {
 }
 
 async function createUser() {
-  const name      = document.getElementById('new-name').value.trim();
-  const callsign  = document.getElementById('new-callsign').value.trim();
-  const roles     = [];
+  const name       = document.getElementById('new-name').value.trim();
+  const prf_number = document.getElementById('new-prf').value.trim();
+  const roles      = [];
 
   if (document.getElementById('role-responder').checked)   roles.push('responder');
   if (document.getElementById('role-coordinator').checked) roles.push('coordinator');
@@ -200,14 +201,52 @@ async function createUser() {
   if (!roles.length) { CFR.toast('Please select at least one role.', 'warning'); return; }
 
   try {
-    const { access_key, user } = await CFR.apiPost('/api/users', { name, callsign, roles });
+    const { access_key, user } = await CFR.apiPost('/api/users', { name, prf_number, roles });
     document.getElementById('new-key-value').textContent = access_key;
     document.getElementById('new-key-display').classList.remove('hidden');
     document.getElementById('new-name').value = '';
-    document.getElementById('new-callsign').value = '';
+    document.getElementById('new-prf').value = '';
     document.getElementById('role-responder').checked = true;
     document.getElementById('role-coordinator').checked = false;
     document.getElementById('role-compliance').checked = false;
+    loadUsers();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+function openEditModal(user) {
+  document.getElementById('edit-access-key').value = user.access_key;
+  document.getElementById('edit-name').value        = user.name || '';
+  document.getElementById('edit-prf').value         = user.prf_number || '';
+  document.getElementById('edit-role-responder').checked   = (user.roles || []).includes('responder');
+  document.getElementById('edit-role-coordinator').checked = (user.roles || []).includes('coordinator');
+  document.getElementById('edit-role-compliance').checked  = (user.roles || []).includes('compliance');
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+
+function closeEditModal(e) {
+  if (e && e.target !== document.getElementById('edit-modal')) return;
+  document.getElementById('edit-modal').classList.add('hidden');
+}
+
+async function saveEdit() {
+  const access_key = document.getElementById('edit-access-key').value;
+  const name       = document.getElementById('edit-name').value.trim();
+  const prf_number = document.getElementById('edit-prf').value.trim();
+  const roles      = [];
+
+  if (document.getElementById('edit-role-responder').checked)   roles.push('responder');
+  if (document.getElementById('edit-role-coordinator').checked) roles.push('coordinator');
+  if (document.getElementById('edit-role-compliance').checked)  roles.push('compliance');
+
+  if (!name)         { CFR.toast('Name is required.', 'warning'); return; }
+  if (!roles.length) { CFR.toast('At least one role required.', 'warning'); return; }
+
+  try {
+    await CFR.apiPatch('/api/users', { access_key, name, prf_number, roles });
+    document.getElementById('edit-modal').classList.add('hidden');
+    CFR.toast('User updated.', 'success');
     loadUsers();
   } catch (e) {
     CFR.toast(e.message, 'error');

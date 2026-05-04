@@ -30,7 +30,7 @@ export async function onRequestPost({ request, env, data }) {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { name, callsign, roles } = body;
+  const { name, prf_number, roles } = body;
   if (!name || !roles?.length) {
     return Response.json({ error: 'name and roles required' }, { status: 400 });
   }
@@ -43,7 +43,7 @@ export async function onRequestPost({ request, env, data }) {
     id:          crypto.randomUUID(),
     access_key,
     name:        name.trim(),
-    callsign:    (callsign || '').trim(),
+    prf_number:  (prf_number || '').trim(),
     roles:       roles.filter(r => ['responder','coordinator','compliance'].includes(r)),
     active:      true,
     created_at:  new Date().toISOString(),
@@ -70,14 +70,16 @@ export async function onRequestPatch({ request, env, data }) {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { access_key, active, roles } = body;
+  const { access_key, active, roles, name, prf_number } = body;
   if (!access_key) return Response.json({ error: 'access_key required' }, { status: 400 });
 
   const user = await env.CFR_USERS.get(`user:${access_key}`, { type: 'json' });
   if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
 
-  if (active !== undefined) user.active = active;
-  if (roles)                user.roles  = roles;
+  if (active !== undefined) user.active     = active;
+  if (roles)                user.roles      = roles;
+  if (name)                 user.name       = name.trim();
+  if (prf_number !== undefined) user.prf_number = prf_number.trim();
   user.updated_at = new Date().toISOString();
   user.updated_by = data.user.id;
 

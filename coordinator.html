@@ -95,8 +95,8 @@
           <input id="new-name" class="form-input" type="text" placeholder="e.g. Jane Smith">
         </div>
         <div class="form-group">
-          <label class="form-label" for="new-callsign">Callsign / ID</label>
-          <input id="new-callsign" class="form-input" type="text" placeholder="Optional">
+          <label class="form-label" for="new-prf">PRF Number</label>
+          <input id="new-prf" class="form-input" type="text" placeholder="Optional">
         </div>
         <div class="form-group mb-0">
           <label class="form-label">Roles <span class="req">*</span></label>
@@ -142,6 +142,42 @@
   </main>
 
   <nav id="bottom-nav" class="bottom-nav"></nav>
+
+  <!-- Edit user modal -->
+  <div id="edit-modal" class="modal-overlay hidden" onclick="closeEditModal(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <p class="modal-title">Edit Responder</p>
+      <input type="hidden" id="edit-access-key">
+      <div class="form-group">
+        <label class="form-label" for="edit-name">Full Name <span class="req">*</span></label>
+        <input id="edit-name" class="form-input" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="edit-prf">PRF Number</label>
+        <input id="edit-prf" class="form-input" type="text" placeholder="Optional">
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Roles <span class="req">*</span></label>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-top:4px;">
+          <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
+            <input type="checkbox" id="edit-role-responder"> Responder
+          </label>
+          <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
+            <input type="checkbox" id="edit-role-coordinator"> Coordinator
+          </label>
+          <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
+            <input type="checkbox" id="edit-role-compliance"> Compliance
+          </label>
+        </div>
+      </div>
+      <hr class="divider">
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-ghost flex-1" onclick="closeEditModal()">Cancel</button>
+        <button class="btn btn-primary flex-1" onclick="saveEdit()">Save</button>
+      </div>
+    </div>
+  </div>
 
   <script src="/js/app.js"></script>
   <script src="/js/coordinator.js"></script>
