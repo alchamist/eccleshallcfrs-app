@@ -1,3 +1,24 @@
+const ADJS = [
+  'amber','bold','brave','bright','brisk','calm','clear','crisp','deft','eager',
+  'fair','firm','fleet','fresh','gold','green','keen','kind','light','lime',
+  'quick','quiet','rapid','sharp','silver','sleek','smart','smooth','solid','steady',
+  'still','stone','strong','sure','swift','teal','warm','wise','young','zest',
+  'blue','brave','clean','close','cool','dark','deep','east','free','grand',
+];
+const NOUNS = [
+  'anchor','arrow','badge','beacon','birch','brook','cairn','cloud','coast','crest',
+  'crown','dale','dawn','echo','elm','falcon','field','flint','ford','forge',
+  'frost','glen','grove','haven','heath','helm','hill','holly','island','kite',
+  'larch','ledge','maple','marsh','mast','moor','oak','peak','pine','pond',
+  'raven','reed','ridge','river','robin','rowan','slate','trail','vale','willow',
+];
+
+function generateKey(prf_number) {
+  const pick   = arr => arr[Math.floor(Math.random() * arr.length)];
+  const suffix = prf_number ? String(prf_number).trim() : String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+  return `cfr-${pick(ADJS)}-${pick(NOUNS)}-${suffix}`;
+}
+
 function requireCoordinator(data) {
   const { user } = data;
   if (!user.roles?.includes('coordinator')) {
@@ -36,9 +57,7 @@ export async function onRequestPost({ request, env, data }) {
     return Response.json({ error: 'name and roles required' }, { status: 400 });
   }
 
-  // Generate a readable access key: cfr-XXXX-XXXX-XXXX
-  const rand = () => Math.random().toString(36).slice(2, 6).toUpperCase();
-  const access_key = `cfr-${rand()}-${rand()}-${rand()}`;
+  const access_key = generateKey(prf_number);
 
   const user = {
     id:          crypto.randomUUID(),
@@ -78,8 +97,7 @@ export async function onRequestPatch({ request, env, data }) {
   if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
 
   if (regenerate_key) {
-    const rand   = () => Math.random().toString(36).slice(2, 6).toUpperCase();
-    const newKey = `cfr-${rand()}-${rand()}-${rand()}`;
+    const newKey = generateKey(user.prf_number);
     const updated = { ...user, access_key: newKey, updated_at: new Date().toISOString(), updated_by: data.user.id };
 
     const index    = await env.CFR_USERS.get('users:index', { type: 'json' }) || [];
