@@ -144,6 +144,28 @@ async function downloadDutyExport() {
   }
 }
 
+// ── Device PIN ────────────────────────────────────────────────────────────────
+
+async function setDevicePin() {
+  const pin    = document.getElementById('device-pin-input').value.trim();
+  const status = document.getElementById('device-pin-status');
+
+  if (!/^\d{4,8}$/.test(pin)) {
+    CFR.toast('PIN must be 4–8 digits.', 'warning');
+    return;
+  }
+
+  try {
+    await CFR.apiPost('/api/device-pin', { pin });
+    document.getElementById('device-pin-input').value = '';
+    status.innerHTML = '<div class="alert alert-success" style="margin:0;"><span class="alert-icon">✓</span> Device PIN updated successfully.</div>';
+    status.classList.remove('hidden');
+    setTimeout(() => status.classList.add('hidden'), 4000);
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
 // ── Users ─────────────────────────────────────────────────────────────────────
 
 async function loadUsers() {

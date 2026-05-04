@@ -89,6 +89,19 @@
 
     <!-- Users tab -->
     <div id="tab-users" class="hidden">
+
+      <!-- Device PIN -->
+      <div class="card" style="margin-bottom:16px;">
+        <p class="card-title">Device PIN</p>
+        <p class="card-subtitle">Set the PIN for the shared car device. All responders use this to unlock the crew picker.</p>
+        <div class="form-group mb-0" style="display:flex; gap:8px;">
+          <input id="device-pin-input" class="form-input" type="password" inputmode="numeric"
+                 pattern="[0-9]*" maxlength="8" placeholder="4–8 digit PIN" style="flex:1;">
+          <button class="btn btn-primary" onclick="setDevicePin()">Set PIN</button>
+        </div>
+        <div id="device-pin-status" class="hidden" style="margin-top:10px;"></div>
+      </div>
+
       <div class="card">
         <p class="card-title">Add Responder</p>
         <div class="form-group">

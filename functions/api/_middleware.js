@@ -1,6 +1,6 @@
 // Auth middleware for all /api/* routes except /api/auth and /api/stats
 
-const PUBLIC = ['/api/auth', '/api/stats'];
+const PUBLIC = ['/api/auth', '/api/stats', '/api/device-pin'];
 
 export async function onRequest(context) {
   const { request, env, next, data } = context;

@@ -31,6 +31,16 @@ function logout() {
   location.href = '/';
 }
 
+function lockDevice() {
+  if (localStorage.getItem('cfr_on_shift')) {
+    if (!confirm('You are signed on to an active shift.\n\nSign off first, or tap OK to switch users anyway.')) return;
+  }
+  localStorage.removeItem('cfr_key');
+  localStorage.removeItem('cfr_user');
+  localStorage.removeItem('cfr_on_shift');
+  location.href = '/';
+}
+
 function requireAuth() {
   if (!isLoggedIn()) { location.href = '/'; return false; }
   return true;
@@ -211,8 +221,13 @@ function buildHeader() {
   if (header && !header.querySelector('.header-sign-out')) {
     const btn = document.createElement('button');
     btn.className = 'header-btn header-sign-out';
-    btn.textContent = 'Sign out';
-    btn.addEventListener('click', logout);
+    if (user?._device_mode) {
+      btn.textContent = 'Switch User';
+      btn.addEventListener('click', lockDevice);
+    } else {
+      btn.textContent = 'Sign out';
+      btn.addEventListener('click', logout);
+    }
     const badge = document.getElementById('sync-badge');
     if (badge) header.insertBefore(btn, badge);
     else header.appendChild(btn);
@@ -302,7 +317,7 @@ if ('serviceWorker' in navigator) {
 
 window.CFR = {
   // auth
-  getUser, getAccessKey, isLoggedIn, hasRole, logout, requireAuth, requireRole, setOnShift,
+  getUser, getAccessKey, isLoggedIn, hasRole, logout, lockDevice, requireAuth, requireRole, setOnShift,
   // api
   apiGet, apiPost, apiPatch, apiDelete, submitForm,
   // queue
