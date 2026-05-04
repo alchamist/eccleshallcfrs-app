@@ -9,6 +9,10 @@ async function loadShift() {
   try {
     const data = await CFR.apiGet('/api/vehicle-shift');
     currentShift = data.active || null;
+    // Sync on-shift flag with server state
+    const user = CFR.getUser();
+    const onShift = currentShift?.crew?.some(c => c.responder_id === user.id && !c.signed_off) || false;
+    CFR.setOnShift(onShift);
     render();
   } catch {
     document.getElementById('page-content').innerHTML =
@@ -147,6 +151,7 @@ async function confirmStart() {
   try {
     const { shift } = await CFR.apiPost('/api/vehicle-shift', { start_mileage: mileage });
     currentShift = shift;
+    CFR.setOnShift(true);
     closeStartModal();
     render();
     CFR.toast('Shift started — you are the driver.', 'success');
@@ -162,6 +167,7 @@ async function joinShift() {
   try {
     const { shift } = await CFR.apiPatch('/api/vehicle-shift', { id: currentShift.id, action: 'join' });
     currentShift = shift;
+    CFR.setOnShift(true);
     render();
     CFR.toast('You have joined the shift.', 'success');
   } catch (e) {
@@ -217,6 +223,7 @@ async function confirmSignoff() {
     });
 
     currentShift = shift.status === 'active' ? shift : null;
+    CFR.setOnShift(false);
     closeSignoffModal();
     render();
 

@@ -94,13 +94,9 @@ export async function onRequestPatch({ request, env, data }) {
     return Response.json({ error: 'id and action required' }, { status: 400 });
   }
 
-  const activeId = await env.CFR_DATA.get('vshift:active');
-  if (id !== activeId) {
-    return Response.json({ error: 'Shift not found or not active' }, { status: 404 });
-  }
-
   const { key, shift } = await getShiftWithKey(env, id);
-  if (!shift) return Response.json({ error: 'Shift record not found' }, { status: 404 });
+  if (!shift) return Response.json({ error: 'Shift not found' }, { status: 404 });
+  if (shift.status !== 'active') return Response.json({ error: 'Shift is no longer active' }, { status: 409 });
 
   const now = new Date().toISOString();
 

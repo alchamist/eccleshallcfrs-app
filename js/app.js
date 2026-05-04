@@ -16,9 +16,18 @@ function hasRole(role) {
   return user.roles.includes(role);
 }
 
+function setOnShift(active) {
+  if (active) localStorage.setItem('cfr_on_shift', '1');
+  else localStorage.removeItem('cfr_on_shift');
+}
+
 function logout() {
+  if (localStorage.getItem('cfr_on_shift')) {
+    if (!confirm('You are currently signed on to an active shift.\n\nSign off the shift first, or tap OK to sign out anyway.')) return;
+  }
   localStorage.removeItem('cfr_key');
   localStorage.removeItem('cfr_user');
+  localStorage.removeItem('cfr_on_shift');
   location.href = '/';
 }
 
@@ -193,9 +202,21 @@ function buildNav() {
   }).join('');
 }
 
-function setHeaderUser() {
+function buildHeader() {
+  const user = getUser();
   const el = document.getElementById('header-user');
-  if (el) { const u = getUser(); if (u) el.textContent = u.name; }
+  if (el && user) el.textContent = user.name?.split(' ')[0] || user.name || '';
+
+  const header = document.querySelector('.app-header');
+  if (header && !header.querySelector('.header-sign-out')) {
+    const btn = document.createElement('button');
+    btn.className = 'header-btn header-sign-out';
+    btn.textContent = 'Sign out';
+    btn.addEventListener('click', logout);
+    const badge = document.getElementById('sync-badge');
+    if (badge) header.insertBefore(btn, badge);
+    else header.appendChild(btn);
+  }
 }
 
 /* ── Date / time helpers ─────────────────────────────────────────────────── */
@@ -262,7 +283,7 @@ function toast(msg, type = 'info') {
 document.addEventListener('DOMContentLoaded', () => {
   refreshSyncBadge();
   buildNav();
-  setHeaderUser();
+  buildHeader();
 });
 
 window.addEventListener('online', () => {
@@ -281,7 +302,7 @@ if ('serviceWorker' in navigator) {
 
 window.CFR = {
   // auth
-  getUser, getAccessKey, isLoggedIn, hasRole, logout, requireAuth, requireRole,
+  getUser, getAccessKey, isLoggedIn, hasRole, logout, requireAuth, requireRole, setOnShift,
   // api
   apiGet, apiPost, apiPatch, apiDelete, submitForm,
   // queue
