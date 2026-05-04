@@ -176,6 +176,18 @@
         <button class="btn btn-ghost flex-1" onclick="closeEditModal()">Cancel</button>
         <button class="btn btn-primary flex-1" onclick="saveEdit()">Save</button>
       </div>
+      <hr class="divider">
+      <button class="btn btn-ghost btn-block" style="color:var(--color-danger);" onclick="regenerateKey()">Regenerate Access Key</button>
+      <div id="regen-key-display" class="hidden" style="margin-top:12px;">
+        <div class="alert alert-success" style="margin-bottom:0;">
+          <span class="alert-icon">🔑</span>
+          <div>
+            <div style="font-weight:600; margin-bottom:4px;">New Access Key</div>
+            <div id="regen-key-value" style="font-family:monospace; font-size:16px; letter-spacing:.05em; word-break:break-all;"></div>
+            <div style="font-size:12px; margin-top:6px; opacity:.8;">Share this with the responder. It cannot be shown again.</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 

@@ -232,6 +232,7 @@ function openEditModal(accessKey) {
 function closeEditModal(e) {
   if (e && e.target !== document.getElementById('edit-modal')) return;
   document.getElementById('edit-modal').classList.add('hidden');
+  document.getElementById('regen-key-display').classList.add('hidden');
 }
 
 async function saveEdit() {
@@ -251,6 +252,23 @@ async function saveEdit() {
     await CFR.apiPatch('/api/users', { access_key, name, prf_number, roles });
     document.getElementById('edit-modal').classList.add('hidden');
     CFR.toast('User updated.', 'success');
+    loadUsers();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+async function regenerateKey() {
+  const access_key = document.getElementById('edit-access-key').value;
+  const name       = document.getElementById('edit-name').value || 'this user';
+  if (!confirm(`Generate a new access key for ${name}? Their current key will stop working immediately.`)) return;
+
+  try {
+    const { access_key: newKey } = await CFR.apiPatch('/api/users', { access_key, regenerate_key: true });
+    document.getElementById('edit-access-key').value  = newKey;
+    document.getElementById('regen-key-value').textContent = newKey;
+    document.getElementById('regen-key-display').classList.remove('hidden');
+    CFR.toast('New key generated.', 'success');
     loadUsers();
   } catch (e) {
     CFR.toast(e.message, 'error');

@@ -71,15 +71,32 @@ export async function onRequestPatch({ request, env, data }) {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { access_key, active, roles, name, prf_number } = body;
+  const { access_key, active, roles, name, prf_number, regenerate_key } = body;
   if (!access_key) return Response.json({ error: 'access_key required' }, { status: 400 });
 
   const user = await env.CFR_USERS.get(`user:${access_key}`, { type: 'json' });
   if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
 
-  if (active !== undefined) user.active     = active;
-  if (roles)                user.roles      = roles;
-  if (name)                 user.name       = name.trim();
+  if (regenerate_key) {
+    const rand   = () => Math.random().toString(36).slice(2, 6).toUpperCase();
+    const newKey = `cfr-${rand()}-${rand()}-${rand()}`;
+    const updated = { ...user, access_key: newKey, updated_at: new Date().toISOString(), updated_by: data.user.id };
+
+    const index    = await env.CFR_USERS.get('users:index', { type: 'json' }) || [];
+    const newIndex = index.map(k => k === access_key ? newKey : k);
+
+    await Promise.all([
+      env.CFR_USERS.put(`user:${newKey}`, JSON.stringify(updated)),
+      env.CFR_USERS.put('users:index', JSON.stringify(newIndex)),
+      env.CFR_USERS.delete(`user:${access_key}`),
+    ]);
+
+    return Response.json({ access_key: newKey, user: updated });
+  }
+
+  if (active !== undefined)     user.active     = active;
+  if (roles)                    user.roles      = roles;
+  if (name)                     user.name       = name.trim();
   if (prf_number !== undefined) user.prf_number = prf_number.trim();
   user.updated_at = new Date().toISOString();
   user.updated_by = data.user.id;
