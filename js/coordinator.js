@@ -54,18 +54,21 @@ async function loadSubmissions() {
         <table class="data-table">
           <thead>
             <tr>
-              <th>Type</th><th>Date</th><th>Responder</th><th>Summary</th>
+              <th>Type</th><th>Date</th><th>Responder</th><th>Summary</th><th></th>
             </tr>
           </thead>
           <tbody>
             ${items.map(item => {
               const summary = formatSummary(item);
+              const keyAttr = item._key ? ` data-key="${item._key}"` : '';
               return `
                 <tr>
                   <td>${typeIcons[item.type] || ''} ${typeLabels[item.type] || item.type}</td>
                   <td>${CFR.fmtDate(item.date)}</td>
                   <td>${item.responder_name || item.completed_by_name || '—'}</td>
                   <td class="text-muted">${summary}</td>
+                  <td><button class="btn btn-sm btn-ghost" style="color:var(--red);"
+                       onclick="deleteSubmission('${item._key || ''}', '${typeLabels[item.type] || item.type}', '${CFR.fmtDate(item.date)}')">Delete</button></td>
                 </tr>`;
             }).join('')}
           </tbody>
@@ -86,6 +89,18 @@ function formatSummary(item) {
   if (item.type === 'claim')   return `${item.total_miles} miles · ${item.incident_type || '—'}`;
   if (item.type === 'monthly') return item.overall_pass ? '✓ Pass' : '⚠ Issues flagged';
   return '';
+}
+
+async function deleteSubmission(key, typeLabel, dateStr) {
+  if (!key) { CFR.toast('Cannot delete this record.', 'error'); return; }
+  if (!confirm(`Delete this ${typeLabel} record from ${dateStr}?\n\nThis cannot be undone.`)) return;
+  try {
+    await CFR.apiDelete(`/api/submissions?key=${encodeURIComponent(key)}`);
+    CFR.toast('Record deleted.', 'success');
+    loadSubmissions();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
 }
 
 // ── Export ────────────────────────────────────────────────────────────────────
@@ -184,18 +199,20 @@ async function loadUsers() {
 
     list.innerHTML = users.map(u => `
       <div class="card" style="margin-bottom:10px; padding:14px;">
-        <div class="flex items-center justify-between gap-2">
-          <div>
-            <div class="font-semi">${u.name}${u.prf_number ? ` <span class="text-muted text-sm">(PRF ${u.prf_number})</span>` : ''}</div>
-            <div class="text-sm text-muted" style="margin-top:2px;">
-              ${(u.roles || []).join(', ')}
+        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:600; font-size:15px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              ${u.name}
+              <span class="badge ${u.active ? 'badge-green' : 'badge-grey'}">${u.active ? 'Active' : 'Disabled'}</span>
+            </div>
+            <div style="font-size:13px; color:var(--text-muted); margin-top:3px;">
+              ${(u.roles || []).join(', ')}${u.prf_number ? ` · PRF ${u.prf_number}` : ''}
             </div>
           </div>
-          <div class="flex gap-2" style="flex-shrink:0;">
-            <span class="badge ${u.active ? 'badge-green' : 'badge-grey'}">${u.active ? 'Active' : 'Disabled'}</span>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
             <button class="btn btn-sm btn-ghost" onclick="openEditModal('${u.access_key}')">Edit</button>
             ${u.active
-              ? `<button class="btn btn-sm btn-ghost" onclick="toggleUser('${u.access_key}', false)">Disable</button>`
+              ? `<button class="btn btn-sm btn-ghost" style="color:var(--red);" onclick="toggleUser('${u.access_key}', false)">Disable</button>`
               : `<button class="btn btn-sm btn-success" onclick="toggleUser('${u.access_key}', true)">Enable</button>`
             }
           </div>

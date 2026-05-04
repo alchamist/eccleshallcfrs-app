@@ -1,11 +1,16 @@
-// GET /api/submissions — aggregated list across all types for coordinator view
+// GET    /api/submissions — aggregated list across all types for coordinator view
+// DELETE /api/submissions?key=KV_KEY — delete a specific record (coordinator only)
 
-export async function onRequestGet({ request, env, data }) {
-  const { user } = data;
-  const isCoord  = user.roles?.includes('coordinator');
-  if (!isCoord) {
+function requireCoordinator(data) {
+  if (!data.user.roles?.includes('coordinator')) {
     return Response.json({ error: 'Coordinator role required' }, { status: 403 });
   }
+  return null;
+}
+
+export async function onRequestGet({ request, env, data }) {
+  const deny = requireCoordinator(data);
+  if (deny) return deny;
 
   const url  = new URL(request.url);
   const type = url.searchParams.get('type'); // duty|vshift|vdi|claim|monthly
@@ -29,9 +34,13 @@ export async function onRequestGet({ request, env, data }) {
         .filter(k => k.name !== 'vshift:active')
         .sort((a, b) => b.name.localeCompare(a.name))
         .slice(0, 100);
-      const records = (await Promise.all(relevant.map(k => env.CFR_DATA.get(k.name, { type: 'json' }))))
-        .filter(Boolean)
-        .map(r => ({ ...r, type: t }));
+      const records = (await Promise.all(
+        relevant.map(async k => {
+          const r = await env.CFR_DATA.get(k.name, { type: 'json' });
+          if (!r) return null;
+          return { ...r, type: t, _key: k.name };
+        })
+      )).filter(Boolean);
       return records;
     })
   )).flat();
@@ -55,4 +64,27 @@ export async function onRequestGet({ request, env, data }) {
     }));
 
   return Response.json({ items: filtered });
+}
+
+export async function onRequestDelete({ request, env, data }) {
+  const deny = requireCoordinator(data);
+  if (deny) return deny;
+
+  const url = new URL(request.url);
+  const key = url.searchParams.get('key');
+
+  if (!key || key === 'vshift:active' || !key.match(/^(duty|vshift|vdi|claim|monthly):/)) {
+    return Response.json({ error: 'Invalid key' }, { status: 400 });
+  }
+
+  const record = await env.CFR_DATA.get(key, { type: 'json' });
+  if (!record) return Response.json({ error: 'Record not found' }, { status: 404 });
+
+  // If deleting an active shift, also clear the active pointer
+  if (key.startsWith('vshift:') && record.status === 'active') {
+    await env.CFR_DATA.delete('vshift:active');
+  }
+
+  await env.CFR_DATA.delete(key);
+  return Response.json({ ok: true });
 }
