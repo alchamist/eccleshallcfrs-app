@@ -1,4 +1,5 @@
-const CACHE = 'cfr-v1';
+// Bump this string on every deploy to evict stale caches from users' devices.
+const CACHE = 'cfr-v3';
 
 const STATIC = [
   '/index.html',
@@ -50,18 +51,24 @@ self.addEventListener('fetch', e => {
   if (url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/')) return;
 
-  // Navigation requests: network-first so redirects and auth work correctly;
-  // fall back to cached page only when offline.
-  if (request.mode === 'navigate') {
+  // HTML and JS: network-first so code changes are always picked up immediately;
+  // fall back to cache only when offline.
+  if (request.mode === 'navigate' || url.pathname.endsWith('.js')) {
     e.respondWith(
-      fetch(request).catch(() =>
+      fetch(request).then(res => {
+        if (res.ok && res.type === 'basic') {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(request, clone));
+        }
+        return res;
+      }).catch(() =>
         caches.match(request).then(r => r || caches.match('/index.html'))
       )
     );
     return;
   }
 
-  // Sub-resources (CSS, JS, images): cache-first
+  // CSS, images, manifest: cache-first (rarely change)
   e.respondWith(
     caches.match(request).then(cached => {
       if (cached) return cached;
