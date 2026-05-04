@@ -2,6 +2,7 @@ CFR.requireAuth();
 
 let currentShift = null;
 let currentShiftKey = null; // KV key for PATCH operations
+let vdiToday = false;
 
 // ── Render ────────────────────────────────────────────────────────────────────
 
@@ -9,6 +10,7 @@ async function loadShift() {
   try {
     const data = await CFR.apiGet('/api/vehicle-shift');
     currentShift = data.active || null;
+    vdiToday     = data.vdiToday || false;
     // Sync on-shift flag with server state
     const user = CFR.getUser();
     const onShift = currentShift?.crew?.some(c => c.responder_id === user.id && !c.signed_off) || false;
@@ -30,13 +32,24 @@ function render() {
 }
 
 function renderNoShift(el) {
+  const vdiWarning = !vdiToday ? `
+    <div class="alert alert-danger" style="margin-bottom:16px;">
+      <span class="alert-icon">⚠</span>
+      <div>
+        <strong>VDI required</strong><br>
+        <span style="font-size:13px;">Complete the Vehicle Daily Inspection before starting a shift.</span><br>
+        <a href="/vehicle-inspection.html" class="btn btn-sm btn-secondary" style="margin-top:8px; display:inline-flex;">Complete VDI</a>
+      </div>
+    </div>` : '';
+
   el.innerHTML = `
     <div class="empty-state">
       <div class="empty-state-icon">🚗</div>
       <h3>No active shift</h3>
       <p>RC0681 is not currently on duty.</p>
     </div>
-    <button class="btn btn-success btn-block btn-lg" onclick="openStartModal(false)">
+    ${vdiWarning}
+    <button class="btn btn-success btn-block btn-lg" onclick="openStartModal()" ${!vdiToday ? 'disabled' : ''}>
       Start Shift
     </button>`;
 }
@@ -156,7 +169,13 @@ async function confirmStart() {
     render();
     CFR.toast('Shift started — you are the driver.', 'success');
   } catch (e) {
-    CFR.toast(e.message, 'error');
+    if (e.message.includes('Vehicle Daily Inspection')) {
+      closeStartModal();
+      CFR.toast('Complete the VDI first.', 'warning');
+      setTimeout(() => { location.href = '/vehicle-inspection.html'; }, 1200);
+    } else {
+      CFR.toast(e.message, 'error');
+    }
   } finally {
     btn.disabled = false; btn.textContent = 'Start Shift';
   }

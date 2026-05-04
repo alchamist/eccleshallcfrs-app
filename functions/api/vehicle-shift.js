@@ -3,6 +3,7 @@
 // PATCH /api/vehicle-shift         — crew join/leave/set-driver/complete
 
 export async function onRequestGet({ env }) {
+  const today    = new Date().toISOString().slice(0, 10);
   const activeId = await env.CFR_DATA.get('vshift:active');
   let active = null;
 
@@ -14,7 +15,11 @@ export async function onRequestGet({ env }) {
     }
   }
 
-  const { keys } = await env.CFR_DATA.list({ prefix: 'vshift:' });
+  const [{ keys }, { keys: vdiKeys }] = await Promise.all([
+    env.CFR_DATA.list({ prefix: 'vshift:' }),
+    env.CFR_DATA.list({ prefix: `vdi:${today}:` }),
+  ]);
+
   const shiftKeys = keys
     .filter(k => k.name !== 'vshift:active')
     .sort((a, b) => b.name.localeCompare(a.name))
@@ -28,7 +33,7 @@ export async function onRequestGet({ env }) {
     .sort((a, b) => new Date(b.start_datetime) - new Date(a.start_datetime))
     .slice(0, 10);
 
-  return Response.json({ active, recent });
+  return Response.json({ active, recent, vdiToday: vdiKeys.length > 0 });
 }
 
 export async function onRequestPost({ request, env, data }) {
@@ -41,6 +46,16 @@ export async function onRequestPost({ request, env, data }) {
   const { start_mileage } = body;
   if (!start_mileage || start_mileage < 0) {
     return Response.json({ error: 'start_mileage required' }, { status: 400 });
+  }
+
+  // Require a VDI for today before starting a shift
+  const today = new Date().toISOString().slice(0, 10);
+  const { keys: vdiKeys } = await env.CFR_DATA.list({ prefix: `vdi:${today}:` });
+  if (vdiKeys.length === 0) {
+    return Response.json({
+      error: 'A Vehicle Daily Inspection must be completed before starting a shift.',
+      code: 'NO_VDI_TODAY',
+    }, { status: 409 });
   }
 
   // Prevent duplicate active shifts
