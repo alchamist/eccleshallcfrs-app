@@ -13,6 +13,16 @@
   <link rel="stylesheet" href="/css/app.css">
   <style>
     body { padding: 0; }
+    .login-alt-link {
+      display: block;
+      text-align: center;
+      margin-top: 16px;
+      font-size: 13px;
+      color: var(--color-primary);
+      cursor: pointer;
+      text-decoration: underline;
+    }
+    .login-section { transition: none; }
   </style>
 </head>
 <body class="login-page">
@@ -25,36 +35,76 @@
 
     <div id="error-msg" class="alert alert-danger hidden">
       <span class="alert-icon">⚠</span>
-      <span id="error-text">Invalid access key.</span>
+      <span id="error-text"></span>
     </div>
 
-    <div class="form-group">
-      <label class="form-label" for="access-key">Access Key</label>
-      <input
-        id="access-key"
-        class="form-input"
-        type="password"
-        placeholder="Enter your access key"
-        autocomplete="current-password"
-        autocapitalize="none"
-        spellcheck="false"
-      >
+    <!-- ── Mode 1: PRF + PIN (default) ──────────────────────────────────── -->
+    <div id="section-pin" class="login-section">
+      <div class="form-group">
+        <label class="form-label" for="prf-input">PRF Number</label>
+        <input id="prf-input" class="form-input" type="text" inputmode="numeric"
+               pattern="[0-9]*" placeholder="e.g. 7861" autocomplete="username">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="pin-input">PIN</label>
+        <input id="pin-input" class="form-input" type="password" inputmode="numeric"
+               pattern="[0-9]*" maxlength="6" placeholder="4–6 digit PIN"
+               autocomplete="current-password">
+      </div>
+      <button id="pin-btn" class="btn btn-primary btn-block btn-lg">Sign In</button>
+      <span class="login-alt-link" onclick="showSection('setup')">First login or forgot PIN?</span>
+      <span class="login-alt-link" onclick="showSection('key')" style="margin-top:4px;">Sign in with access key</span>
     </div>
 
-    <button id="login-btn" class="btn btn-primary btn-block btn-lg">Sign In</button>
+    <!-- ── Mode 2: PRF + access key → set PIN ───────────────────────────── -->
+    <div id="section-setup" class="login-section hidden">
+      <p class="text-sm text-muted" style="margin-bottom:14px;">
+        Enter your PRF number and the access key your coordinator gave you, then choose a PIN for future logins.
+      </p>
+      <div class="form-group">
+        <label class="form-label" for="setup-prf">PRF Number</label>
+        <input id="setup-prf" class="form-input" type="text" inputmode="numeric"
+               pattern="[0-9]*" placeholder="e.g. 7861">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="setup-key">Access Key</label>
+        <input id="setup-key" class="form-input" type="password" autocapitalize="none"
+               spellcheck="false" placeholder="cfr-word-word-1234">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="setup-pin">New PIN</label>
+        <input id="setup-pin" class="form-input" type="password" inputmode="numeric"
+               pattern="[0-9]*" maxlength="6" placeholder="Choose a 4–6 digit PIN">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="setup-pin2">Confirm PIN</label>
+        <input id="setup-pin2" class="form-input" type="password" inputmode="numeric"
+               pattern="[0-9]*" maxlength="6" placeholder="Repeat your PIN">
+      </div>
+      <button id="setup-btn" class="btn btn-primary btn-block btn-lg">Set PIN &amp; Sign In</button>
+      <span class="login-alt-link" onclick="showSection('pin')">Back to sign in</span>
+    </div>
 
-    <p class="text-center text-muted text-sm" style="margin-top:20px;">
-      Need an access key? Contact your scheme coordinator.
-    </p>
+    <!-- ── Mode 3: access key only (no PRF / coordinator) ───────────────── -->
+    <div id="section-key" class="login-section hidden">
+      <p class="text-sm text-muted" style="margin-bottom:14px;">
+        Use this if you don't have a PRF number.
+      </p>
+      <div class="form-group">
+        <label class="form-label" for="key-input">Access Key</label>
+        <input id="key-input" class="form-input" type="password" autocapitalize="none"
+               spellcheck="false" placeholder="cfr-word-word-1234"
+               autocomplete="current-password">
+      </div>
+      <button id="key-btn" class="btn btn-primary btn-block btn-lg">Sign In</button>
+      <span class="login-alt-link" onclick="showSection('pin')">Back to sign in</span>
+    </div>
   </div>
 
   <script src="/js/app.js"></script>
   <script>
-    // Redirect if already logged in
     if (CFR.isLoggedIn()) location.href = '/dashboard.html';
 
-    const keyInput = document.getElementById('access-key');
-    const loginBtn = document.getElementById('login-btn');
     const errorMsg = document.getElementById('error-msg');
     const errorTxt = document.getElementById('error-text');
 
@@ -62,42 +112,74 @@
       errorTxt.textContent = msg;
       errorMsg.classList.remove('hidden');
     }
+    function clearError() { errorMsg.classList.add('hidden'); }
 
-    async function doLogin() {
-      const key = keyInput.value.trim();
-      if (!key) { showError('Please enter your access key.'); return; }
+    function showSection(name) {
+      clearError();
+      ['pin','setup','key'].forEach(s =>
+        document.getElementById(`section-${s}`).classList.toggle('hidden', s !== name)
+      );
+    }
 
-      loginBtn.disabled    = true;
-      loginBtn.textContent = 'Signing in…';
-      errorMsg.classList.add('hidden');
-
+    async function postAuth(payload, btn, label) {
+      btn.disabled = true;
+      btn.textContent = 'Signing in…';
+      clearError();
       try {
-        const data = await fetch('/api/auth', {
+        const res  = await fetch('/api/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ access_key: key }),
+          body: JSON.stringify(payload),
         });
-
-        if (!data.ok) {
-          const err = await data.json().catch(() => ({}));
-          showError(err.error || 'Invalid access key. Please try again.');
-          return;
-        }
-
-        const { user } = await data.json();
-        localStorage.setItem('cfr_key',  key);
-        localStorage.setItem('cfr_user', JSON.stringify(user));
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) { showError(data.error || 'Sign in failed. Please try again.'); return; }
+        localStorage.setItem('cfr_key',  data.access_key);
+        localStorage.setItem('cfr_user', JSON.stringify(data.user));
         location.href = '/dashboard.html';
       } catch {
         showError('Could not connect. Please check your network and try again.');
       } finally {
-        loginBtn.disabled    = false;
-        loginBtn.textContent = 'Sign In';
+        btn.disabled = false;
+        btn.textContent = label;
       }
     }
 
-    loginBtn.addEventListener('click', doLogin);
-    keyInput.addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+    // Mode 1: PRF + PIN
+    document.getElementById('pin-btn').addEventListener('click', () => {
+      const prf = document.getElementById('prf-input').value.trim();
+      const pin = document.getElementById('pin-input').value.trim();
+      if (!prf) { showError('Please enter your PRF number.'); return; }
+      if (!pin) { showError('Please enter your PIN.'); return; }
+      postAuth({ prf_number: prf, pin }, document.getElementById('pin-btn'), 'Sign In');
+    });
+    document.getElementById('pin-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('pin-btn').click();
+    });
+
+    // Mode 2: PRF + access key + new PIN
+    document.getElementById('setup-btn').addEventListener('click', () => {
+      const prf  = document.getElementById('setup-prf').value.trim();
+      const key  = document.getElementById('setup-key').value.trim();
+      const pin  = document.getElementById('setup-pin').value.trim();
+      const pin2 = document.getElementById('setup-pin2').value.trim();
+      if (!prf)        { showError('Please enter your PRF number.'); return; }
+      if (!key)        { showError('Please enter your access key.'); return; }
+      if (!pin)        { showError('Please choose a PIN.'); return; }
+      if (!/^\d{4,6}$/.test(pin)) { showError('PIN must be 4–6 digits.'); return; }
+      if (pin !== pin2){ showError('PINs do not match.'); return; }
+      postAuth({ prf_number: prf, access_key: key, new_pin: pin },
+               document.getElementById('setup-btn'), 'Set PIN & Sign In');
+    });
+
+    // Mode 3: access key only
+    document.getElementById('key-btn').addEventListener('click', () => {
+      const key = document.getElementById('key-input').value.trim();
+      if (!key) { showError('Please enter your access key.'); return; }
+      postAuth({ access_key: key }, document.getElementById('key-btn'), 'Sign In');
+    });
+    document.getElementById('key-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') document.getElementById('key-btn').click();
+    });
   </script>
 </body>
 </html>
