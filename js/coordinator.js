@@ -2,6 +2,7 @@ CFR.requireAuth();
 CFR.requireRole('coordinator');
 
 let activeTab = 'submissions';
+let _users    = [];
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -151,6 +152,7 @@ async function loadUsers() {
 
   try {
     const { users } = await CFR.apiGet('/api/users');
+    _users = users || [];
     populateExportResponders(users);
 
     if (!users || users.length === 0) {
@@ -169,7 +171,7 @@ async function loadUsers() {
           </div>
           <div class="flex gap-2" style="flex-shrink:0;">
             <span class="badge ${u.active ? 'badge-green' : 'badge-grey'}">${u.active ? 'Active' : 'Disabled'}</span>
-            <button class="btn btn-sm btn-ghost" onclick="openEditModal(${JSON.stringify(u).replace(/"/g, '&quot;')})">Edit</button>
+            <button class="btn btn-sm btn-ghost" onclick="openEditModal('${u.access_key}')">Edit</button>
             ${u.active
               ? `<button class="btn btn-sm btn-ghost" onclick="toggleUser('${u.access_key}', false)">Disable</button>`
               : `<button class="btn btn-sm btn-success" onclick="toggleUser('${u.access_key}', true)">Enable</button>`
@@ -215,8 +217,10 @@ async function createUser() {
   }
 }
 
-function openEditModal(user) {
-  document.getElementById('edit-access-key').value = user.access_key;
+function openEditModal(accessKey) {
+  const user = _users.find(u => u.access_key === accessKey);
+  if (!user) { CFR.toast('Could not load user data.', 'error'); return; }
+  document.getElementById('edit-access-key').value = accessKey;
   document.getElementById('edit-name').value        = user.name || '';
   document.getElementById('edit-prf').value         = user.prf_number || '';
   document.getElementById('edit-role-responder').checked   = (user.roles || []).includes('responder');

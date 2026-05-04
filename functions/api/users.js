@@ -12,11 +12,12 @@ export async function onRequestGet({ env, data }) {
 
   const index = await env.CFR_USERS.get('users:index', { type: 'json' }) || [];
   const users = (await Promise.all(
-    index.map(key => env.CFR_USERS.get(`user:${key}`, { type: 'json' }))
-  )).filter(Boolean).map(u => {
-    // Return the access_key so coordinator can disable/enable by key
-    return u;
-  });
+    index.map(async key => {
+      const u = await env.CFR_USERS.get(`user:${key}`, { type: 'json' });
+      if (u && !u.access_key) u.access_key = key; // backfill for manually-created entries
+      return u;
+    })
+  )).filter(Boolean);
 
   return Response.json({ users });
 }
