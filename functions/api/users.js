@@ -19,6 +19,16 @@ function generateKey(prf_number) {
   return `cfr-${pick(ADJS)}-${pick(NOUNS)}-${suffix}`;
 }
 
+function randomPin() {
+  // 4-digit PIN: 1000–9999 (never starts with 0)
+  return String(Math.floor(Math.random() * 9000) + 1000);
+}
+
+async function hashPin(pin, salt) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${salt}:${pin}`));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
 function requireCoordinator(data) {
   const { user } = data;
   if (!user.roles?.includes('coordinator')) {
@@ -58,6 +68,9 @@ export async function onRequestPost({ request, env, data }) {
   }
 
   const access_key = generateKey(prf_number);
+  const pin        = randomPin();
+  const pin_salt   = crypto.randomUUID();
+  const pin_hash   = await hashPin(pin, pin_salt);
 
   const user = {
     id:          crypto.randomUUID(),
@@ -66,19 +79,20 @@ export async function onRequestPost({ request, env, data }) {
     prf_number:  (prf_number || '').trim(),
     roles:       roles.filter(r => ['responder','coordinator','compliance'].includes(r)),
     active:      true,
+    pin_hash,
+    pin_salt,
     created_at:  new Date().toISOString(),
     created_by:  data.user.id,
   };
 
   await env.CFR_USERS.put(`user:${access_key}`, JSON.stringify(user));
 
-  // Update index
   const index = await env.CFR_USERS.get('users:index', { type: 'json' }) || [];
   index.push(access_key);
   await env.CFR_USERS.put('users:index', JSON.stringify(index));
 
-  // Return the access key once — not stored in plaintext anywhere user can retrieve later
-  return Response.json({ access_key, user }, { status: 201 });
+  // Return PIN and access key once — neither is stored in retrievable form
+  return Response.json({ access_key, pin, user }, { status: 201 });
 }
 
 export async function onRequestPatch({ request, env, data }) {
@@ -90,7 +104,7 @@ export async function onRequestPatch({ request, env, data }) {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const { access_key, active, roles, name, prf_number, regenerate_key } = body;
+  const { access_key, active, roles, name, prf_number, regenerate_key, reset_pin } = body;
   if (!access_key) return Response.json({ error: 'access_key required' }, { status: 400 });
 
   const user = await env.CFR_USERS.get(`user:${access_key}`, { type: 'json' });
@@ -110,6 +124,15 @@ export async function onRequestPatch({ request, env, data }) {
     ]);
 
     return Response.json({ access_key: newKey, user: updated });
+  }
+
+  if (reset_pin) {
+    const pin      = randomPin();
+    const pin_salt = crypto.randomUUID();
+    const pin_hash = await hashPin(pin, pin_salt);
+    const updated  = { ...user, pin_hash, pin_salt, updated_at: new Date().toISOString(), updated_by: data.user.id };
+    await env.CFR_USERS.put(`user:${access_key}`, JSON.stringify(updated));
+    return Response.json({ pin });
   }
 
   if (active !== undefined)     user.active     = active;

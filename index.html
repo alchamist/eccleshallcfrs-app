@@ -239,6 +239,22 @@
     // ── Init ─────────────────────────────────────────────────────────────────
 
     (async () => {
+      const savedMode = localStorage.getItem('cfr_device_mode');
+
+      // Car tablet registered — go straight to device PIN without network check
+      if (savedMode === 'car') {
+        _devicePinConfigured = true;
+        showSection('device-pin');
+        return;
+      }
+
+      // Personal device registered — go straight to personal login
+      if (savedMode === 'personal') {
+        showSection('pin');
+        return;
+      }
+
+      // Unknown device — check whether a device PIN is configured
       try {
         const res = await fetch('/api/device-pin');
         const { configured } = await res.json();
@@ -381,6 +397,10 @@
         if (!res.ok) { showError(data.error || 'Sign in failed. Please try again.'); return; }
         localStorage.setItem('cfr_key',  data.access_key);
         localStorage.setItem('cfr_user', JSON.stringify(data.user));
+        // Remember this as a personal device so future visits skip the car PIN screen
+        if (!localStorage.getItem('cfr_device_mode')) {
+          localStorage.setItem('cfr_device_mode', 'personal');
+        }
         location.href = '/dashboard.html';
       } catch {
         showError('Could not connect. Please check your network and try again.');

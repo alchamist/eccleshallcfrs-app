@@ -121,6 +121,13 @@
           <button class="btn btn-primary" onclick="setDevicePin()">Set PIN</button>
         </div>
         <div id="device-pin-status" class="hidden" style="margin-top:10px;"></div>
+        <hr class="divider">
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">Device registration — open this page on the car tablet, then tap the button below to make it always open to the device PIN screen.</p>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary flex-1" onclick="registerCarDevice()">Register as car tablet</button>
+          <button class="btn btn-ghost" onclick="clearDeviceMode()" title="Clear registration">✕</button>
+        </div>
+        <div id="device-mode-status" style="font-size:12px; color:var(--text-muted); margin-top:6px; text-align:center;"></div>
       </div>
 
       <div class="card">
@@ -148,14 +155,21 @@
           </div>
         </div>
         <hr class="divider">
-        <button class="btn btn-primary btn-block" onclick="createUser()">Generate Access Key</button>
+        <button class="btn btn-primary btn-block" onclick="createUser()">Add Responder</button>
         <div id="new-key-display" class="hidden" style="margin-top:12px;">
           <div class="alert alert-success" style="margin-bottom:0;">
-            <span class="alert-icon">🔑</span>
-            <div>
-              <div style="font-weight:600; margin-bottom:4px;">Access Key Generated</div>
-              <div id="new-key-value" style="font-family:monospace; font-size:16px; letter-spacing:.05em; word-break:break-all;"></div>
-              <div style="font-size:12px; margin-top:6px; opacity:.8;">Share this key with the responder. It cannot be shown again.</div>
+            <span class="alert-icon">✓</span>
+            <div style="width:100%;">
+              <div style="font-weight:600; margin-bottom:8px;">Responder Created</div>
+              <div style="margin-bottom:6px;">
+                <div style="font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:2px;">Initial PIN — send this to the responder</div>
+                <div id="new-pin-value" style="font-family:monospace; font-size:28px; font-weight:700; letter-spacing:.15em;"></div>
+              </div>
+              <div style="margin-top:8px; padding-top:8px; border-top:1px solid rgba(0,0,0,.08);">
+                <div style="font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:2px;">Access key (backup)</div>
+                <div id="new-key-value" style="font-family:monospace; font-size:12px; word-break:break-all; opacity:.7;"></div>
+              </div>
+              <div style="font-size:12px; margin-top:8px; opacity:.7;">These are shown once only. The responder signs in with their PRF number and this PIN.</div>
             </div>
           </div>
         </div>
@@ -212,14 +226,26 @@
         <button class="btn btn-primary flex-1" onclick="saveEdit()">Save</button>
       </div>
       <hr class="divider">
-      <button class="btn btn-ghost btn-block" style="color:var(--color-danger);" onclick="regenerateKey()">Regenerate Access Key</button>
-      <div id="regen-key-display" class="hidden" style="margin-top:12px;">
+      <button class="btn btn-secondary btn-block" onclick="resetPin()">Reset PIN</button>
+      <div id="reset-pin-display" class="hidden" style="margin-top:10px;">
+        <div class="alert alert-success" style="margin-bottom:0;">
+          <span class="alert-icon">✓</span>
+          <div>
+            <div style="font-size:12px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:2px;">New PIN — send to responder</div>
+            <div id="reset-pin-value" style="font-family:monospace; font-size:28px; font-weight:700; letter-spacing:.15em;"></div>
+            <div style="font-size:12px; margin-top:4px; opacity:.7;">Shown once only.</div>
+          </div>
+        </div>
+      </div>
+      <hr class="divider">
+      <button class="btn btn-ghost btn-block" style="color:var(--text-muted);" onclick="regenerateKey()">Regenerate Access Key</button>
+      <div id="regen-key-display" class="hidden" style="margin-top:10px;">
         <div class="alert alert-success" style="margin-bottom:0;">
           <span class="alert-icon">🔑</span>
           <div>
             <div style="font-weight:600; margin-bottom:4px;">New Access Key</div>
-            <div id="regen-key-value" style="font-family:monospace; font-size:16px; letter-spacing:.05em; word-break:break-all;"></div>
-            <div style="font-size:12px; margin-top:6px; opacity:.8;">Share this with the responder. It cannot be shown again.</div>
+            <div id="regen-key-value" style="font-family:monospace; font-size:13px; word-break:break-all;"></div>
+            <div style="font-size:12px; margin-top:6px; opacity:.8;">Shown once only.</div>
           </div>
         </div>
       </div>

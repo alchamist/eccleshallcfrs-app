@@ -16,7 +16,7 @@ function switchTab(tab) {
 
   if (tab === 'submissions') loadSubmissions();
   if (tab === 'report')      initReportPickers();
-  if (tab === 'users')       loadUsers();
+  if (tab === 'users')     { loadUsers(); updateDeviceModeStatus(); }
   if (tab === 'stats')       loadStats();
 }
 
@@ -243,14 +243,15 @@ async function createUser() {
   if (!roles.length) { CFR.toast('Please select at least one role.', 'warning'); return; }
 
   try {
-    const { access_key, user } = await CFR.apiPost('/api/users', { name, prf_number, roles });
+    const { access_key, pin } = await CFR.apiPost('/api/users', { name, prf_number, roles });
+    document.getElementById('new-pin-value').textContent = pin;
     document.getElementById('new-key-value').textContent = access_key;
     document.getElementById('new-key-display').classList.remove('hidden');
     document.getElementById('new-name').value = '';
-    document.getElementById('new-prf').value = '';
-    document.getElementById('role-responder').checked = true;
+    document.getElementById('new-prf').value  = '';
+    document.getElementById('role-responder').checked   = true;
     document.getElementById('role-coordinator').checked = false;
-    document.getElementById('role-compliance').checked = false;
+    document.getElementById('role-compliance').checked  = false;
     loadUsers();
   } catch (e) {
     CFR.toast(e.message, 'error');
@@ -273,6 +274,7 @@ function closeEditModal(e) {
   if (e && e.target !== document.getElementById('edit-modal')) return;
   document.getElementById('edit-modal').classList.add('hidden');
   document.getElementById('regen-key-display').classList.add('hidden');
+  document.getElementById('reset-pin-display').classList.add('hidden');
 }
 
 async function saveEdit() {
@@ -313,6 +315,39 @@ async function regenerateKey() {
   } catch (e) {
     CFR.toast(e.message, 'error');
   }
+}
+
+async function resetPin() {
+  const access_key = document.getElementById('edit-access-key').value;
+  const name       = document.getElementById('edit-name').value || 'this user';
+  if (!confirm(`Reset the PIN for ${name}? A new 4-digit PIN will be generated.`)) return;
+  try {
+    const { pin } = await CFR.apiPatch('/api/users', { access_key, reset_pin: true });
+    document.getElementById('reset-pin-value').textContent = pin;
+    document.getElementById('reset-pin-display').classList.remove('hidden');
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+function registerCarDevice() {
+  localStorage.setItem('cfr_device_mode', 'car');
+  updateDeviceModeStatus();
+  CFR.toast('This device will always open to the car PIN screen.', 'success');
+}
+
+function clearDeviceMode() {
+  localStorage.removeItem('cfr_device_mode');
+  updateDeviceModeStatus();
+  CFR.toast('Device registration cleared.', 'success');
+}
+
+function updateDeviceModeStatus() {
+  const el   = document.getElementById('device-mode-status');
+  const mode = localStorage.getItem('cfr_device_mode');
+  el.textContent = mode === 'car'
+    ? 'This device is registered as the car tablet.'
+    : 'This device has no registration (standard behaviour).';
 }
 
 async function toggleUser(access_key, active) {
