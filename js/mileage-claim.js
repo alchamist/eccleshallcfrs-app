@@ -22,18 +22,19 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
 
   const user    = CFR.getUser();
   const payload = {
-    responder_id:   user.id,
-    responder_name: user.name,
-    callsign:       user.callsign || '',
+    responder_id:      user.id,
+    responder_name:    user.name,
+    callsign:          user.callsign || '',
     date,
-    callout_time:   time,
-    job_number:     document.getElementById('job-number').value.trim(),
-    call_category:  category,
-    patient_age:    age,
-    incident_type:  type,
-    journey_details: journey,
-    total_miles:    miles,
-    comments:       document.getElementById('claim-comments').value.trim(),
+    callout_time:      time,
+    job_number:        document.getElementById('job-number').value.trim(),
+    call_category:     category,
+    patient_age:       age,
+    incident_type:     type,
+    incident_location: document.getElementById('incident-location').value.trim(),
+    journey_details:   journey,
+    total_miles:       miles,
+    comments:          document.getElementById('claim-comments').value.trim(),
   };
 
   const btn    = document.getElementById('submit-btn');
@@ -55,8 +56,9 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     document.getElementById('job-number').value    = '';
     document.getElementById('call-category').value = '';
     document.getElementById('patient-age').value   = '';
-    document.getElementById('incident-type').value = '';
-    document.getElementById('journey-details').value = '';
+    document.getElementById('incident-type').value     = '';
+    document.getElementById('incident-location').value = '';
+    document.getElementById('journey-details').value   = '';
     document.getElementById('total-miles').value   = '';
     document.getElementById('claim-comments').value = '';
   } catch (e) {

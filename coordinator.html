@@ -22,6 +22,7 @@
     <!-- Tabs -->
     <div style="display:flex; gap:6px; margin-bottom:16px; overflow-x:auto; padding-bottom:2px;">
       <button class="btn btn-primary btn-sm tab-btn" data-tab="submissions" onclick="switchTab('submissions')">Submissions</button>
+      <button class="btn btn-ghost btn-sm tab-btn" data-tab="report"       onclick="switchTab('report')">Report</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="export"       onclick="switchTab('export')">Export</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="users"        onclick="switchTab('users')">Users</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="stats"        onclick="switchTab('stats')">Stats</button>
@@ -45,6 +46,26 @@
       <div id="submissions-list">
         <div class="loading"><div class="spinner"></div>Loading…</div>
       </div>
+    </div>
+
+    <!-- Report tab -->
+    <div id="tab-report" class="hidden">
+      <div class="card">
+        <p class="card-title">Monthly Activity Report</p>
+        <div class="form-row">
+          <div class="form-group mb-0">
+            <label class="form-label" for="report-month">Month</label>
+            <select id="report-month" class="form-select"></select>
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label" for="report-year">Year</label>
+            <select id="report-year" class="form-select"></select>
+          </div>
+        </div>
+        <hr class="divider">
+        <button class="btn btn-primary btn-block" onclick="loadReport()">Generate Report</button>
+      </div>
+      <div id="report-content"></div>
     </div>
 
     <!-- Export tab -->

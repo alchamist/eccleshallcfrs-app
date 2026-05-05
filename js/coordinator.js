@@ -15,6 +15,7 @@ function switchTab(tab) {
   activeTab = tab;
 
   if (tab === 'submissions') loadSubmissions();
+  if (tab === 'report')      initReportPickers();
   if (tab === 'users')       loadUsers();
   if (tab === 'stats')       loadStats();
 }
@@ -321,6 +322,145 @@ async function toggleUser(access_key, active) {
   } catch (e) {
     CFR.toast(e.message, 'error');
   }
+}
+
+// ── Monthly Report ────────────────────────────────────────────────────────────
+
+const CAT_LABELS = {
+  cat1: 'Category 1', cat2: 'Category 2', cat3: 'Category 3', cat4: 'Category 4',
+  unknown: 'Unknown', backup: 'Backup', movement: 'Movement / Travel',
+};
+const TYPE_LABELS = {
+  cardiac_arrest: 'Cardiac Arrest', unconscious: 'Unconscious / Not Responding',
+  breathing_difficulty: 'Breathing Difficulty', anaphylaxis: 'Anaphylaxis',
+  rtc: 'Road Traffic Collision', trauma: 'Trauma', chest_pain: 'Chest Pain',
+  fall: 'Fall', stroke: 'Stroke / TIA', mental_health: 'Mental Health',
+  concern_welfare: 'Concern for Welfare', sepsis: 'Sepsis',
+  major_incident: 'Major Incident', other: 'Other',
+};
+const AGE_LABELS = { adult: 'Adult', paediatric: 'Paediatric', unknown: 'Unknown', na: 'N/A' };
+const MONTH_NAMES = ['January','February','March','April','May','June',
+                     'July','August','September','October','November','December'];
+
+function initReportPickers() {
+  const monthSel = document.getElementById('report-month');
+  const yearSel  = document.getElementById('report-year');
+  if (monthSel.options.length) return; // already initialised
+
+  MONTH_NAMES.forEach((name, i) => {
+    const opt = document.createElement('option');
+    opt.value = String(i + 1).padStart(2, '0');
+    opt.textContent = name;
+    monthSel.appendChild(opt);
+  });
+
+  const currentYear = new Date().getFullYear();
+  for (let y = currentYear; y >= currentYear - 3; y--) {
+    const opt = document.createElement('option');
+    opt.value = String(y);
+    opt.textContent = String(y);
+    yearSel.appendChild(opt);
+  }
+
+  monthSel.value = String(new Date().getMonth() + 1).padStart(2, '0');
+  yearSel.value  = String(currentYear);
+}
+
+async function loadReport() {
+  const content = document.getElementById('report-content');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div>Generating report…</div>';
+
+  const month = document.getElementById('report-month').value;
+  const year  = document.getElementById('report-year').value;
+
+  try {
+    const data = await CFR.apiGet(`/api/reports/monthly?year=${year}&month=${month}`);
+    renderReport(data, content);
+  } catch (e) {
+    content.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">⚠</span>${e.message}</div>`;
+  }
+}
+
+function renderReport(data, el) {
+  const { period, responders, vehicle, incidents } = data;
+  const periodLabel = `${MONTH_NAMES[parseInt(period.month, 10) - 1]} ${period.year}`;
+
+  // ── Responder hours table ────────────────────────────────────────────────
+  const responderRows = responders.map(r => {
+    const hrs   = r.duty_hours.toFixed(1);
+    const zero  = r.duty_mins === 0;
+    return `<tr${zero ? ' style="color:var(--text-muted);"' : ''}>
+      <td>${r.name}</td>
+      <td style="text-align:center;">${r.duty_logs}</td>
+      <td style="text-align:center; font-weight:${zero ? '400' : '600'};">${hrs} h</td>
+      <td style="text-align:center;">${r.incidents_attended}</td>
+      <td style="text-align:center;">${r.incidents_allocated}</td>
+    </tr>`;
+  }).join('');
+
+  // ── Breakdown helper ─────────────────────────────────────────────────────
+  function breakdownCard(title, counts, labels) {
+    const total = Object.values(counts).reduce((s, n) => s + n, 0);
+    if (total === 0) return `<div class="card"><p class="card-title">${title}</p><p class="text-muted text-sm">No data</p></div>`;
+    const rows = Object.entries(counts).map(([k, n]) => {
+      const label = labels?.[k] || k;
+      const pct   = Math.round(n / total * 100);
+      return `<div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+        <div style="flex:1; font-size:13px;">${label}</div>
+        <div style="font-size:13px; font-weight:600; min-width:28px; text-align:right;">${n}</div>
+        <div style="width:80px; background:var(--border); border-radius:4px; height:6px; overflow:hidden;">
+          <div style="width:${pct}%; background:var(--blue); height:100%;"></div>
+        </div>
+      </div>`;
+    }).join('');
+    return `<div class="card"><p class="card-title">${title}</p>${rows}</div>`;
+  }
+
+  const locationCard = Object.keys(incidents.by_location || {}).length
+    ? breakdownCard('By Location', incidents.by_location, null)
+    : `<div class="card"><p class="card-title">By Location</p><p class="text-muted text-sm">Location field not yet recorded on claims.</p></div>`;
+
+  el.innerHTML = `
+    <p class="section-heading">${periodLabel}</p>
+
+    <p class="section-heading" style="margin-top:0;">Responder Duty Hours</p>
+    <div class="card" style="padding:0; overflow:hidden;">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr>
+            <th>Responder</th>
+            <th style="text-align:center;">Logs</th>
+            <th style="text-align:center;">Hours</th>
+            <th style="text-align:center;">Attended</th>
+            <th style="text-align:center;">Allocated</th>
+          </tr></thead>
+          <tbody>${responderRows || '<tr><td colspan="5" class="text-muted text-sm" style="text-align:center; padding:16px;">No duty logs this month</td></tr>'}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <p class="section-heading">Vehicle on Duty</p>
+    <div class="stats-grid" style="margin-bottom:16px;">
+      <div class="stat-card">
+        <div class="stat-value">${vehicle.shifts}</div>
+        <div class="stat-label">Shifts completed</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${vehicle.hours_on_duty.toFixed(1)} h</div>
+        <div class="stat-label">Hours on duty</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value">${vehicle.total_jobs}</div>
+        <div class="stat-label">Total jobs</div>
+      </div>
+    </div>
+
+    <p class="section-heading">Incidents (${incidents.total} total)</p>
+    ${breakdownCard('By Category', incidents.by_category, CAT_LABELS)}
+    ${breakdownCard('By Type',     incidents.by_type,     TYPE_LABELS)}
+    ${breakdownCard('By Age',      incidents.by_age,      AGE_LABELS)}
+    ${locationCard}
+  `;
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
