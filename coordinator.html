@@ -25,6 +25,7 @@
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="report"       onclick="switchTab('report')">Report</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="export"       onclick="switchTab('export')">Export</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="users"        onclick="switchTab('users')">Users</button>
+      <button class="btn btn-ghost btn-sm tab-btn" data-tab="rota"         onclick="switchTab('rota')">Rota</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="stats"        onclick="switchTab('stats')">Stats</button>
     </div>
 
@@ -181,6 +182,49 @@
       </div>
     </div>
 
+    <!-- Rota tab -->
+    <div id="tab-rota" class="hidden">
+
+      <!-- Block list view -->
+      <div id="rota-blocks-view">
+        <div class="card">
+          <p class="card-title">Create Planning Block</p>
+          <div class="form-row">
+            <div class="form-group mb-0">
+              <label class="form-label">From</label>
+              <input id="rota-start" class="form-input" type="date">
+            </div>
+            <div class="form-group mb-0">
+              <label class="form-label">To</label>
+              <input id="rota-end" class="form-input" type="date">
+            </div>
+          </div>
+          <div class="form-group" style="margin-top:12px; margin-bottom:0;">
+            <label class="form-label">Notes (optional)</label>
+            <input id="rota-notes" class="form-input" type="text"
+                   placeholder="e.g. School holidays, bank holiday coverage…">
+          </div>
+          <hr class="divider">
+          <button class="btn btn-primary btn-block" onclick="createRotaBlock()">Create Block</button>
+        </div>
+
+        <p class="section-heading">Planning Blocks</p>
+        <div id="rota-blocks-list">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+      </div>
+
+      <!-- Block detail view -->
+      <div id="rota-block-detail" class="hidden">
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px;">
+          <button class="btn btn-ghost btn-sm" onclick="backToBlocks()">← Back</button>
+          <div id="rota-block-title" style="font-weight:600; font-size:15px;"></div>
+        </div>
+        <div id="rota-block-status-bar" style="margin-bottom:16px;"></div>
+        <div id="rota-block-days"></div>
+      </div>
+    </div>
+
     <!-- Stats tab -->
     <div id="tab-stats" class="hidden">
       <div id="stats-content">
@@ -248,6 +292,57 @@
             <div style="font-size:12px; margin-top:6px; opacity:.8;">Shown once only.</div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Allocate shift modal -->
+  <div id="alloc-modal" class="modal-overlay hidden" onclick="closeAllocModal(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <p class="modal-title" id="alloc-modal-title">Allocate Shift</p>
+      <input type="hidden" id="alloc-block-id">
+      <input type="hidden" id="alloc-shift-id">
+      <div class="form-group">
+        <label class="form-label">Responder <span class="req">*</span></label>
+        <select id="alloc-responder" class="form-select"></select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date <span class="req">*</span></label>
+        <input id="alloc-date" class="form-input" type="date">
+      </div>
+      <div class="form-row">
+        <div class="form-group mb-0">
+          <label class="form-label">From <span class="req">*</span></label>
+          <input id="alloc-start" class="form-input" type="time">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">To <span class="req">*</span></label>
+          <input id="alloc-end" class="form-input" type="time">
+        </div>
+      </div>
+      <div class="form-group" style="margin-top:12px;">
+        <label class="form-label">Type</label>
+        <select id="alloc-type" class="form-select">
+          <option value="car">🚗 Car Shift</option>
+          <option value="fundraising">💰 Fundraising</option>
+          <option value="training">📚 Training</option>
+          <option value="other">📅 Other</option>
+        </select>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Notes (optional)</label>
+        <input id="alloc-notes" class="form-input" type="text">
+      </div>
+      <hr class="divider">
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-ghost flex-1" onclick="closeAllocModal()">Cancel</button>
+        <button class="btn btn-primary flex-1" onclick="saveAllocShift()">Save</button>
+      </div>
+      <div id="alloc-delete-row" class="hidden">
+        <hr class="divider">
+        <button class="btn btn-ghost btn-block" style="color:var(--red);"
+                onclick="deleteAllocShift()">Delete Shift</button>
       </div>
     </div>
   </div>

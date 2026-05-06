@@ -191,6 +191,7 @@ function buildNav() {
   const nav = document.getElementById('bottom-nav');
   if (!nav) return;
 
+  const user  = getUser();
   const links = [
     { href: '/dashboard.html',          icon: '⌂',  label: 'Home'   },
     { href: '/vehicle-shift.html',       icon: '🚗', label: 'Shift'  },
@@ -199,6 +200,7 @@ function buildNav() {
     { href: '/mileage-claim.html',       icon: '📄', label: 'Claim'  },
   ];
 
+  if (!user?._device_mode) links.push({ href: '/availability.html', icon: '📅', label: 'Rota' });
   if (hasRole('coordinator')) links.push({ href: '/coordinator.html', icon: '⚙', label: 'Admin' });
   if (hasRole('compliance'))  links.push({ href: '/compliance.html',  icon: '◎', label: 'Comply' });
 

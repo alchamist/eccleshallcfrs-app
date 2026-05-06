@@ -145,7 +145,7 @@
       <div class="form-group">
         <label class="form-label" for="prf-input">PRF Number</label>
         <input id="prf-input" class="form-input" type="text" inputmode="numeric"
-               pattern="[0-9]*" placeholder="e.g. 7861" autocomplete="username">
+               pattern="[0-9]*" placeholder="Your PRF number" autocomplete="username">
       </div>
       <div class="form-group">
         <label class="form-label" for="pin-input">PIN</label>
@@ -167,7 +167,7 @@
       <div class="form-group">
         <label class="form-label" for="setup-prf">PRF Number</label>
         <input id="setup-prf" class="form-input" type="text" inputmode="numeric"
-               pattern="[0-9]*" placeholder="e.g. 7861">
+               pattern="[0-9]*" placeholder="Your PRF number">
       </div>
       <div class="form-group">
         <label class="form-label" for="setup-key">Access Key</label>
@@ -373,6 +373,10 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) { showError(data.error || 'Could not sign in. Please try again.'); return; }
+        if (!data.access_key || data.access_key === 'undefined') {
+          showError('Sign in failed: no access key returned. Contact your coordinator.');
+          return;
+        }
         localStorage.setItem('cfr_key',  data.access_key);
         localStorage.setItem('cfr_user', JSON.stringify(data.user));
         location.href = '/dashboard.html';
@@ -395,6 +399,10 @@
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) { showError(data.error || 'Sign in failed. Please try again.'); return; }
+        if (!data.access_key || data.access_key === 'undefined') {
+          showError('Sign in failed: no access key returned. Contact your coordinator.');
+          return;
+        }
         localStorage.setItem('cfr_key',  data.access_key);
         localStorage.setItem('cfr_user', JSON.stringify(data.user));
         // Remember this as a personal device so future visits skip the car PIN screen

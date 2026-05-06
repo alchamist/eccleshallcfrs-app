@@ -17,6 +17,7 @@ function switchTab(tab) {
   if (tab === 'submissions') loadSubmissions();
   if (tab === 'report')      initReportPickers();
   if (tab === 'users')     { loadUsers(); updateDeviceModeStatus(); }
+  if (tab === 'rota')      { if (!_users.length) loadUsers(); loadRotaBlocks(); }
   if (tab === 'stats')       loadStats();
 }
 
@@ -538,6 +539,344 @@ async function loadStats() {
       </div>`;
   } catch (e) {
     content.innerHTML = `<div class="alert alert-danger"><span>⚠</span>${e.message}</div>`;
+  }
+}
+
+// ── Rota ──────────────────────────────────────────────────────────────────────
+
+const ROTA_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+let _rotaBlocks       = [];
+let _openBlockId      = null;
+let _blockAvailability = [];
+let _blockShifts      = [];
+
+function rotaDayDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T00:00:00');
+  return `${ROTA_DOW[d.getDay()]} ${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })}`;
+}
+
+function daysInRange(start, end) {
+  const days = [];
+  const cur  = new Date(start + 'T00:00:00');
+  const last = new Date(end   + 'T00:00:00');
+  while (cur <= last) {
+    days.push(cur.toISOString().slice(0, 10));
+    cur.setDate(cur.getDate() + 1);
+  }
+  return days;
+}
+
+async function loadRotaBlocks() {
+  const list = document.getElementById('rota-blocks-list');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  try {
+    const { blocks } = await CFR.apiGet('/api/rota/blocks');
+    _rotaBlocks = blocks || [];
+    renderRotaBlockList();
+  } catch (e) {
+    list.innerHTML = `<div class="alert alert-danger"><span>⚠</span>${e.message}</div>`;
+  }
+}
+
+function renderRotaBlockList() {
+  const list = document.getElementById('rota-blocks-list');
+  if (!_rotaBlocks.length) {
+    list.innerHTML = '<div class="empty-state"><p>No planning blocks yet. Create one above.</p></div>';
+    return;
+  }
+
+  const statusBadge = {
+    draft:     '<span class="badge badge-grey">Draft</span>',
+    open:      '<span class="badge badge-blue">Open</span>',
+    published: '<span class="badge badge-green">Published</span>',
+    closed:    '<span class="badge badge-grey">Closed</span>',
+  };
+
+  list.innerHTML = _rotaBlocks.map(b => `
+    <div class="card" style="margin-bottom:10px;">
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:8px;">
+        <div style="flex:1; font-weight:600; font-size:15px;">
+          ${CFR.fmtDate(b.start_date)} – ${CFR.fmtDate(b.end_date)}
+        </div>
+        ${statusBadge[b.status] || b.status}
+      </div>
+      ${b.notes ? `<p style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">${b.notes}</p>` : ''}
+      <div style="display:flex; gap:6px; flex-wrap:wrap;">
+        <button class="btn btn-sm btn-ghost" onclick="openRotaBlock('${b.id}')">View / Allocate</button>
+        ${b.status === 'draft'
+          ? `<button class="btn btn-sm btn-secondary" onclick="setBlockStatus('${b.id}','open')">Open for Availability</button>`
+          : ''}
+        ${b.status === 'open'
+          ? `<button class="btn btn-sm btn-primary" onclick="setBlockStatus('${b.id}','published')">Publish Rota</button>`
+          : ''}
+        ${b.status === 'published'
+          ? `<button class="btn btn-sm btn-ghost" onclick="setBlockStatus('${b.id}','closed')">Close</button>`
+          : ''}
+      </div>
+    </div>`).join('');
+}
+
+async function createRotaBlock() {
+  const start = document.getElementById('rota-start').value;
+  const end   = document.getElementById('rota-end').value;
+  const notes = document.getElementById('rota-notes').value.trim();
+
+  if (!start || !end) { CFR.toast('Please set start and end dates.', 'warning'); return; }
+  if (end < start)    { CFR.toast('End date must be after start date.', 'warning'); return; }
+
+  try {
+    await CFR.apiPost('/api/rota/blocks', { start_date: start, end_date: end, notes });
+    document.getElementById('rota-start').value = '';
+    document.getElementById('rota-end').value   = '';
+    document.getElementById('rota-notes').value = '';
+    CFR.toast('Block created.', 'success');
+    loadRotaBlocks();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+async function setBlockStatus(blockId, status) {
+  const labels = { open: 'open for availability', published: 'published', closed: 'closed' };
+  if (!confirm(`Mark this block as ${labels[status] || status}?`)) return;
+  try {
+    await CFR.apiPatch('/api/rota/blocks', { id: blockId, status });
+    CFR.toast('Block updated.', 'success');
+    loadRotaBlocks();
+    if (_openBlockId === blockId) openRotaBlock(blockId);
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+async function openRotaBlock(blockId) {
+  _openBlockId = blockId;
+  document.getElementById('rota-blocks-view').classList.add('hidden');
+  document.getElementById('rota-block-detail').classList.remove('hidden');
+
+  const block = _rotaBlocks.find(b => b.id === blockId);
+  document.getElementById('rota-block-title').textContent = block
+    ? `${CFR.fmtDate(block.start_date)} – ${CFR.fmtDate(block.end_date)}`
+    : '';
+  document.getElementById('rota-block-days').innerHTML =
+    '<div class="loading"><div class="spinner"></div>Loading…</div>';
+
+  try {
+    const [{ entries }, { shifts }] = await Promise.all([
+      CFR.apiGet(`/api/rota/availability?block_id=${blockId}`),
+      CFR.apiGet(`/api/rota/shifts?block_id=${blockId}`),
+    ]);
+    _blockAvailability = entries || [];
+    _blockShifts       = shifts  || [];
+    renderBlockDetail(block);
+  } catch (e) {
+    document.getElementById('rota-block-days').innerHTML =
+      `<div class="alert alert-danger"><span>⚠</span>${e.message}</div>`;
+  }
+}
+
+function backToBlocks() {
+  _openBlockId = null;
+  document.getElementById('rota-block-detail').classList.add('hidden');
+  document.getElementById('rota-blocks-view').classList.remove('hidden');
+}
+
+function renderBlockDetail(block) {
+  const statusBadge = {
+    draft: 'badge-grey', open: 'badge-blue', published: 'badge-green', closed: 'badge-grey',
+  };
+  const statusLabel = {
+    draft: 'Draft', open: 'Open', published: 'Published', closed: 'Closed',
+  };
+
+  document.getElementById('rota-block-status-bar').innerHTML = `
+    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+      <span class="badge ${statusBadge[block.status]}">${statusLabel[block.status] || block.status}</span>
+      ${block.status === 'draft'
+        ? `<button class="btn btn-sm btn-secondary" onclick="setBlockStatus('${block.id}','open')">Open for Availability</button>`
+        : ''}
+      ${block.status === 'open'
+        ? `<button class="btn btn-sm btn-primary" onclick="setBlockStatus('${block.id}','published')">Publish Rota</button>`
+        : ''}
+      ${block.status === 'published'
+        ? `<button class="btn btn-sm btn-ghost" onclick="setBlockStatus('${block.id}','closed')">Close</button>`
+        : ''}
+      <button class="btn btn-sm btn-secondary" onclick="openAllocModal('${block.id}')">+ Add Shift</button>
+    </div>`;
+
+  const availByDay  = {};
+  const shiftsByDay = {};
+  _blockAvailability.forEach(a => {
+    (availByDay[a.date] = availByDay[a.date] || []).push(a);
+  });
+  _blockShifts.forEach(s => {
+    (shiftsByDay[s.date] = shiftsByDay[s.date] || []).push(s);
+  });
+
+  const typeIcons = { car: '🚗', fundraising: '💰', training: '📚', other: '📅' };
+  const shiftStatusStyle = {
+    allocated: 'color:var(--blue)',
+    confirmed: 'color:var(--green)',
+    declined:  'color:var(--red)',
+    cancelled: 'color:var(--text-muted)',
+  };
+
+  const days = daysInRange(block.start_date, block.end_date);
+  document.getElementById('rota-block-days').innerHTML = days.map(date => {
+    const avail  = availByDay[date]  || [];
+    const shifts = shiftsByDay[date] || [];
+
+    const availHtml = avail.length ? `
+      <div style="margin-top:8px;">
+        <div style="font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+                    color:var(--text-muted); margin-bottom:4px;">Available</div>
+        ${avail.map(a => `
+          <div style="display:flex; align-items:center; gap:8px; padding:4px 0;
+                      border-bottom:1px solid var(--border);">
+            <div style="flex:1; font-size:13px;">${a.responder_name} · ${a.start_time}–${a.end_time}
+              ${a.notes ? `<span style="color:var(--text-muted); font-size:12px;"> — ${a.notes}</span>` : ''}
+            </div>
+            <button class="btn btn-sm btn-ghost" style="padding:2px 8px; flex-shrink:0;"
+                    onclick="openAllocModal('${block.id}','${a.responder_id}','${date}','${a.start_time}','${a.end_time}')">
+              Allocate
+            </button>
+          </div>`).join('')}
+      </div>` : '';
+
+    const shiftsHtml = shifts.length ? `
+      <div style="margin-top:8px;">
+        <div style="font-size:11px; text-transform:uppercase; letter-spacing:.05em;
+                    color:var(--text-muted); margin-bottom:4px;">Allocated Shifts</div>
+        ${shifts.map(s => `
+          <div style="display:flex; align-items:center; gap:8px; padding:4px 0;
+                      border-bottom:1px solid var(--border);">
+            <div style="flex:1; font-size:13px;">
+              ${typeIcons[s.type] || '📅'} ${s.responder_name} · ${s.start_time}–${s.end_time}
+              <span style="font-size:11px; ${shiftStatusStyle[s.status] || ''};">
+                (${s.status})
+              </span>
+            </div>
+            <button class="btn btn-sm btn-ghost" style="padding:2px 8px; flex-shrink:0;"
+                    onclick="editAllocShift('${block.id}','${s.id}')">Edit</button>
+          </div>`).join('')}
+      </div>` : '';
+
+    const hasData = avail.length || shifts.length;
+    return `
+      <div class="card" style="margin-bottom:8px; padding:12px;">
+        <div style="font-weight:600; font-size:14px; display:flex; align-items:center;
+                    justify-content:space-between;">
+          ${rotaDayDate(date)}
+          <span style="font-size:12px; color:var(--text-muted);">
+            ${hasData
+              ? `${avail.length} avail · ${shifts.length} shift${shifts.length !== 1 ? 's' : ''}`
+              : 'No entries'}
+          </span>
+        </div>
+        ${availHtml}
+        ${shiftsHtml}
+      </div>`;
+  }).join('');
+}
+
+// ── Allocate shift modal ──────────────────────────────────────────────────────
+
+function openAllocModal(blockId, responderId, date, startTime, endTime) {
+  document.getElementById('alloc-block-id').value = blockId;
+  document.getElementById('alloc-shift-id').value = '';
+  document.getElementById('alloc-date').value     = date      || '';
+  document.getElementById('alloc-start').value    = startTime || '';
+  document.getElementById('alloc-end').value      = endTime   || '';
+  document.getElementById('alloc-notes').value    = '';
+  document.getElementById('alloc-type').value     = 'car';
+  document.getElementById('alloc-modal-title').textContent = 'Allocate Shift';
+  document.getElementById('alloc-delete-row').classList.add('hidden');
+
+  const block = _rotaBlocks.find(b => b.id === blockId);
+  if (block) {
+    document.getElementById('alloc-date').min = block.start_date;
+    document.getElementById('alloc-date').max = block.end_date;
+  }
+
+  const sel = document.getElementById('alloc-responder');
+  sel.innerHTML = _users
+    .filter(u => u.active)
+    .map(u => `<option value="${u.id}" data-name="${u.name}">${u.name}</option>`)
+    .join('');
+  if (responderId) sel.value = responderId;
+
+  document.getElementById('alloc-modal').classList.remove('hidden');
+}
+
+function editAllocShift(blockId, shiftId) {
+  const shift = _blockShifts.find(s => s.id === shiftId);
+  if (!shift) return;
+
+  openAllocModal(blockId, shift.responder_id, shift.date, shift.start_time, shift.end_time);
+  document.getElementById('alloc-shift-id').value       = shiftId;
+  document.getElementById('alloc-type').value           = shift.type  || 'car';
+  document.getElementById('alloc-notes').value          = shift.notes || '';
+  document.getElementById('alloc-modal-title').textContent = 'Edit Shift';
+  document.getElementById('alloc-delete-row').classList.remove('hidden');
+}
+
+function closeAllocModal(e) {
+  if (e && e.target !== document.getElementById('alloc-modal')) return;
+  document.getElementById('alloc-modal').classList.add('hidden');
+}
+
+async function saveAllocShift() {
+  const blockId  = document.getElementById('alloc-block-id').value;
+  const shiftId  = document.getElementById('alloc-shift-id').value;
+  const date     = document.getElementById('alloc-date').value;
+  const start    = document.getElementById('alloc-start').value;
+  const end      = document.getElementById('alloc-end').value;
+  const type     = document.getElementById('alloc-type').value;
+  const notes    = document.getElementById('alloc-notes').value.trim();
+  const sel      = document.getElementById('alloc-responder');
+  const respId   = sel.value;
+  const respName = sel.options[sel.selectedIndex]?.dataset.name || '';
+
+  if (!date || !start || !end || !respId) {
+    CFR.toast('Please fill in all required fields.', 'warning');
+    return;
+  }
+
+  try {
+    if (shiftId) {
+      await CFR.apiPatch('/api/rota/shifts', {
+        id: shiftId, block_id: blockId,
+        date, start_time: start, end_time: end,
+        responder_id: respId, responder_name: respName, type, notes,
+      });
+    } else {
+      await CFR.apiPost('/api/rota/shifts', {
+        block_id: blockId,
+        date, start_time: start, end_time: end,
+        responder_id: respId, responder_name: respName, type, notes,
+      });
+    }
+    document.getElementById('alloc-modal').classList.add('hidden');
+    CFR.toast('Shift saved.', 'success');
+    openRotaBlock(blockId);
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+async function deleteAllocShift() {
+  const blockId = document.getElementById('alloc-block-id').value;
+  const shiftId = document.getElementById('alloc-shift-id').value;
+  if (!confirm('Delete this shift?')) return;
+  try {
+    await CFR.apiDelete(`/api/rota/shifts?id=${shiftId}&block_id=${blockId}`);
+    document.getElementById('alloc-modal').classList.add('hidden');
+    CFR.toast('Shift deleted.', 'success');
+    openRotaBlock(blockId);
+  } catch (e) {
+    CFR.toast(e.message, 'error');
   }
 }
 

@@ -8,7 +8,11 @@ async function hashPin(pin, salt) {
 
 async function allUsers(env) {
   const index = await env.CFR_USERS.get('users:index', { type: 'json' }) || [];
-  const rows  = await Promise.all(index.map(k => env.CFR_USERS.get(`user:${k}`, { type: 'json' })));
+  const rows  = await Promise.all(index.map(async k => {
+    const u = await env.CFR_USERS.get(`user:${k}`, { type: 'json' });
+    if (u && !u.access_key) u.access_key = k;
+    return u;
+  }));
   return rows.filter(Boolean);
 }
 
@@ -110,7 +114,7 @@ export async function onRequestPost({ request, env }) {
     const hash    = await hashPin(new_pin, salt);
     const updated = { ...user, pin_hash: hash, pin_salt: salt, updated_at: new Date().toISOString() };
     await env.CFR_USERS.put(`user:${access_key.trim()}`, JSON.stringify(updated));
-    return Response.json({ user: safeReturn(updated), access_key: updated.access_key });
+    return Response.json({ user: safeReturn(updated), access_key: updated.access_key || access_key.trim() });
   }
 
   // ── Mode 3: access key only (no PRF / personal fallback) ───────────────────
