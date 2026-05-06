@@ -680,3 +680,24 @@ input, select, textarea { font-family: inherit; }
   border-radius: 2px;
   margin: 0 auto 16px;
 }
+
+/* On desktop: centre modals so date/time pickers have room to render */
+@media (min-width: 600px) {
+  .modal-overlay {
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .modal-sheet {
+    border-radius: 12px;
+    max-width: 520px;
+    /* Let the overlay scroll rather than the sheet, so the native
+       date-picker popup can escape the container */
+    overflow-y: visible;
+    max-height: none;
+  }
+  .modal-overlay {
+    overflow-y: auto;
+  }
+  .modal-handle { display: none; }
+}
