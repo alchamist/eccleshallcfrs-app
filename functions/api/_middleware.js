@@ -2,11 +2,15 @@
 
 const PUBLIC = ['/api/auth', '/api/stats', '/api/device-pin'];
 
+// Routes that start with these prefixes are public
+const PUBLIC_PREFIXES = ['/api/status/'];
+
 export async function onRequest(context) {
   const { request, env, next, data } = context;
   const url = new URL(request.url);
 
   if (PUBLIC.includes(url.pathname)) return next();
+  if (PUBLIC_PREFIXES.some(p => url.pathname.startsWith(p))) return next();
 
   const auth = request.headers.get('Authorization') || '';
   if (!auth.startsWith('Bearer ')) {
