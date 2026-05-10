@@ -213,16 +213,16 @@ function buildNav() {
 
   const user  = getUser();
   const links = [
-    { href: '/dashboard.html',          icon: '⌂',  label: 'Home'   },
+    { href: '/dashboard.html',          icon: '🏠', label: 'Home'   },
     { href: '/vehicle-shift.html',       icon: '🚗', label: 'Shift'  },
-    { href: '/duty-hours.html',          icon: '⏱',  label: 'Duty'   },
-    { href: '/vehicle-inspection.html',  icon: '✔',  label: 'VDI'    },
+    { href: '/duty-hours.html',          icon: '🕐', label: 'Duty'   },
+    { href: '/vehicle-inspection.html',  icon: '✅', label: 'VDI'    },
     { href: '/mileage-claim.html',       icon: '📄', label: 'Claim'  },
   ];
 
   if (!user?._device_mode) links.push({ href: '/availability.html', icon: '📅', label: 'Rota' });
-  if (hasRole('coordinator')) links.push({ href: '/coordinator.html', icon: '⚙', label: 'Admin' });
-  if (hasRole('compliance'))  links.push({ href: '/compliance.html',  icon: '◎', label: 'Comply' });
+  if (hasRole('coordinator')) links.push({ href: '/coordinator.html', icon: '⚙️', label: 'Admin' });
+  if (hasRole('compliance'))  links.push({ href: '/compliance.html',  icon: '📋', label: 'Comply' });
 
   const cur = location.pathname;
   nav.innerHTML = links.map(l => {
