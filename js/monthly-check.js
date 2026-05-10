@@ -224,7 +224,7 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
     completed_by_id:   user.id,
     completed_by_name: user.name,
     check_month:       month,
-    vehicle:           'RC0681',
+    vehicle:           CFR.getVehicleConfig().callsign,
     items:             state,
     notes,
     overall_pass:      !hasFlagged,

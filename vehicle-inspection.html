@@ -12,7 +12,7 @@
 </head>
 <body>
   <header class="app-header">
-    <span class="header-logo">RC0681 <span>Daily Inspection</span></span>
+    <span class="header-logo"><span class="callsign">RC0681</span> <span>Daily Inspection</span></span>
     <span id="header-user"></span>
     <span id="sync-badge" class="sync-indicator sync-ok"></span>
   </header>
@@ -85,6 +85,36 @@
         <p class="form-hint" id="defects-required-hint" style="color:var(--red); display:none;">
           ⚠ One or more items flagged — please describe the issue above.
         </p>
+      </div>
+    </div>
+
+    <!-- Tyre tread depth -->
+    <div class="card">
+      <p class="card-title">Tyre Tread Depth (mm)</p>
+      <p class="card-subtitle">Enter the measured tread depth for each tyre. Legal minimum is 1.6mm.</p>
+      <div class="form-row">
+        <div class="form-group mb-0">
+          <label class="form-label">Front Left</label>
+          <input id="tread-fl" class="form-input" type="number" min="0" max="12" step="0.1" placeholder="mm">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Front Right</label>
+          <input id="tread-fr" class="form-input" type="number" min="0" max="12" step="0.1" placeholder="mm">
+        </div>
+      </div>
+      <div class="form-row" style="margin-top:12px;">
+        <div class="form-group mb-0">
+          <label class="form-label">Rear Left</label>
+          <input id="tread-rl" class="form-input" type="number" min="0" max="12" step="0.1" placeholder="mm">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Rear Right</label>
+          <input id="tread-rr" class="form-input" type="number" min="0" max="12" step="0.1" placeholder="mm">
+        </div>
+      </div>
+      <div id="tread-warning" class="alert alert-danger hidden" style="margin-top:12px; margin-bottom:0;">
+        <span class="alert-icon">⚠</span>
+        <span id="tread-warning-text"></span>
       </div>
     </div>
 

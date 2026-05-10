@@ -46,7 +46,7 @@ function renderNoShift(el) {
     <div class="empty-state">
       <div class="empty-state-icon">🚗</div>
       <h3>No active shift</h3>
-      <p>RC0681 is not currently on duty.</p>
+      <p>${CFR.getVehicleConfig().callsign} is not currently on duty.</p>
     </div>
     ${vdiWarning}
     <button class="btn btn-success btn-block btn-lg" onclick="openStartModal()" ${!vdiToday ? 'disabled' : ''}>
@@ -92,7 +92,7 @@ function renderActiveShift(el) {
     <div class="shift-banner">
       <div class="shift-banner-icon">🚗</div>
       <div class="shift-banner-body">
-        <div class="shift-banner-title">RC0681 — Active Shift</div>
+        <div class="shift-banner-title">${CFR.getVehicleConfig().callsign} — Active Shift</div>
         <div class="shift-banner-sub">Started ${started} · ${s.start_mileage?.toLocaleString() ?? '—'} mi</div>
       </div>
     </div>

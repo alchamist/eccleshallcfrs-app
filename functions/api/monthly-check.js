@@ -12,6 +12,7 @@ export async function onRequestPost({ request, env, data }) {
     return Response.json({ error: 'check_month required' }, { status: 400 });
   }
 
+  const vcfg   = await env.CFR_DATA.get('config:vehicle', { type: 'json' });
   const id     = crypto.randomUUID();
   const record = {
     id,
@@ -19,7 +20,7 @@ export async function onRequestPost({ request, env, data }) {
     completed_by_id:    user.id,
     completed_by_name:  user.name,
     check_month:        body.check_month,
-    vehicle:            'RC0681',
+    vehicle:            vcfg?.callsign || 'RC0681',
     items:              body.items ?? {},
     notes:              body.notes ?? '',
     overall_pass:       body.overall_pass ?? true,

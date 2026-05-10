@@ -3,33 +3,30 @@
 
 export async function onRequestGet({ env, request }) {
   try {
+    const url        = new URL(request.url);
+    const showNames  = url.searchParams.get('names') === 'true';
+
     const activeId = await env.CFR_DATA.get('vshift:active');
+    if (!activeId) return jsonResponse({ active: false }, request);
 
-    if (!activeId) {
-      return jsonResponse({ active: false }, request);
-    }
-
-    // Find the active shift record
     const { keys } = await env.CFR_DATA.list({ prefix: 'vshift:' });
     const k = keys.find(k => k.name !== 'vshift:active' && k.name.includes(activeId));
-
-    if (!k) {
-      return jsonResponse({ active: false }, request);
-    }
+    if (!k) return jsonResponse({ active: false }, request);
 
     const shift = await env.CFR_DATA.get(k.name, { type: 'json' });
+    if (!shift || shift.status !== 'active') return jsonResponse({ active: false }, request);
 
-    if (!shift || shift.status !== 'active') {
-      return jsonResponse({ active: false }, request);
+    const activeCrew = (shift.crew || []).filter(c => !c.signed_off);
+    if (!activeCrew.length) return jsonResponse({ active: false }, request);
+
+    const vcfg    = await env.CFR_DATA.get('config:vehicle', { type: 'json' });
+    const payload = { active: true, vehicle: vcfg?.callsign || 'RC0681' };
+
+    if (showNames) {
+      payload.crew = activeCrew.map(c => ({ name: c.name, role: c.role }));
     }
 
-    // Check if there's any crew not signed off
-    const hasActiveCrew = shift.crew && shift.crew.some(c => !c.signed_off);
-
-    return jsonResponse({
-      active: hasActiveCrew,
-      vehicle: 'RC0681',
-    }, request);
+    return jsonResponse(payload, request);
   } catch {
     return jsonResponse({ active: false }, request, 500);
   }

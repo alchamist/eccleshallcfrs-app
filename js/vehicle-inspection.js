@@ -182,6 +182,27 @@ document.getElementById('insp-date').value = CFR.todayISO();
 
 renderChecklists();
 
+// Live tread depth warning
+function checkTreadWarning() {
+  const warnMm  = CFR.getVehicleConfig().tread_warn_mm || 3.0;
+  const labels  = { fl: 'Front Left', fr: 'Front Right', rl: 'Rear Left', rr: 'Rear Right' };
+  const low = Object.keys(labels).filter(k => {
+    const v = parseFloat(document.getElementById(`tread-${k}`).value);
+    return !isNaN(v) && v < warnMm;
+  });
+  const el = document.getElementById('tread-warning');
+  if (low.length) {
+    document.getElementById('tread-warning-text').textContent =
+      `${low.map(k => labels[k]).join(', ')} ${low.length > 1 ? 'are' : 'is'} below the ${warnMm}mm warning threshold — compliance will be notified.`;
+    el.classList.remove('hidden');
+  } else {
+    el.classList.add('hidden');
+  }
+}
+['fl','fr','rl','rr'].forEach(k =>
+  document.getElementById(`tread-${k}`).addEventListener('input', checkTreadWarning)
+);
+
 document.getElementById('submit-btn').addEventListener('click', async () => {
   const date    = document.getElementById('insp-date').value;
   const mileage = parseInt(document.getElementById('insp-mileage').value, 10);
@@ -208,18 +229,34 @@ document.getElementById('submit-btn').addEventListener('click', async () => {
   const checks = {};
   SECTIONS.forEach(s => s.items.forEach(i => { checks[i.id] = state[i.id]; }));
 
+  // Tread depth
+  const vcfg  = CFR.getVehicleConfig();
+  const tread = {
+    fl: parseFloat(document.getElementById('tread-fl').value) || null,
+    fr: parseFloat(document.getElementById('tread-fr').value) || null,
+    rl: parseFloat(document.getElementById('tread-rl').value) || null,
+    rr: parseFloat(document.getElementById('tread-rr').value) || null,
+  };
+  const warnMm   = vcfg.tread_warn_mm || 3.0;
+  const lowTyres = Object.entries(tread)
+    .filter(([, v]) => v !== null && v < warnMm)
+    .map(([k]) => ({ fl: 'Front Left', fr: 'Front Right', rl: 'Rear Left', rr: 'Rear Right' }[k]));
+  const treadBelowThreshold = lowTyres.length > 0;
+
   const user    = CFR.getUser();
   const payload = {
     completed_by_id:   user.id,
     completed_by_name: user.name,
     date,
-    vehicle:        'RC0681',
+    vehicle:          vcfg.callsign,
     starting_mileage: mileage,
-    fuel_level:     parseInt(fuelInput.value),
-    oil_level:      parseInt(oilInput.value),
+    fuel_level:       parseInt(fuelInput.value),
+    oil_level:        parseInt(oilInput.value),
+    tread_depth:      tread,
+    tread_below_threshold: treadBelowThreshold,
     checks,
-    defects_notes:  defects,
-    overall_pass:   !hasFlagged,
+    defects_notes:    defects,
+    overall_pass:     !hasFlagged,
   };
 
   const btn    = document.getElementById('submit-btn');

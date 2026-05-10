@@ -19,6 +19,7 @@ function switchTab(tab) {
   if (tab === 'users')     { loadUsers(); updateDeviceModeStatus(); }
   if (tab === 'rota')      { if (!_users.length) loadUsers(); loadRotaBlocks(); }
   if (tab === 'stats')       loadStats();
+  if (tab === 'vehicle')     loadVehicleSettings();
   if (tab === 'audit')       loadAuditLog();
 }
 
@@ -501,6 +502,89 @@ function renderReport(data, el) {
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
+
+/* ── Vehicle settings ───────────────────────────────────────────────────── */
+
+const MAINT_LABELS = { mot: 'MOT', service: 'Service', insurance: 'Insurance', deep_clean: 'Deep Clean' };
+
+async function loadVehicleSettings() {
+  try {
+    const { config } = await CFR.apiGet('/api/config/vehicle');
+    document.getElementById('cfg-callsign').value = config.callsign || '';
+    document.getElementById('cfg-tread').value    = config.tread_warn_mm || 3;
+    const m = config.maintenance || {};
+    document.getElementById('maint-mot-due').value       = m.mot?.next_due      || '';
+    document.getElementById('maint-mot-warn').value      = m.mot?.warn_days     || 30;
+    document.getElementById('maint-service-due').value   = m.service?.next_due  || '';
+    document.getElementById('maint-service-warn').value  = m.service?.warn_days || 14;
+    document.getElementById('maint-insurance-due').value  = m.insurance?.next_due  || '';
+    document.getElementById('maint-insurance-warn').value = m.insurance?.warn_days || 30;
+    document.getElementById('maint-clean-interval').value = m.deep_clean?.interval_days || 60;
+    document.getElementById('maint-clean-warn').value     = m.deep_clean?.warn_days     || 7;
+  } catch (e) { CFR.toast(e.message, 'error'); }
+  document.getElementById('maint-log-date').value = CFR.todayISO();
+  loadMaintenanceHistory();
+}
+
+async function saveVehicleSettings() {
+  const callsign  = document.getElementById('cfg-callsign').value.trim();
+  const tread     = parseFloat(document.getElementById('cfg-tread').value);
+  if (!callsign) { CFR.toast('Call sign is required.', 'warning'); return; }
+  if (isNaN(tread) || tread < 1.6) { CFR.toast('Tread threshold must be at least 1.6mm.', 'warning'); return; }
+  try {
+    const { config } = await CFR.apiPatch('/api/config/vehicle', { callsign, tread_warn_mm: tread });
+    localStorage.setItem('cfr_vehicle_config', JSON.stringify(config));
+    CFR.toast('Settings saved.', 'success');
+    document.querySelectorAll('.callsign').forEach(el => { el.textContent = callsign; });
+  } catch (e) { CFR.toast(e.message, 'error'); }
+}
+
+async function saveMaintenanceSettings() {
+  const maintenance = {
+    mot:       { next_due: document.getElementById('maint-mot-due').value      || null, warn_days: parseInt(document.getElementById('maint-mot-warn').value) || 30 },
+    service:   { next_due: document.getElementById('maint-service-due').value  || null, warn_days: parseInt(document.getElementById('maint-service-warn').value) || 14 },
+    insurance: { next_due: document.getElementById('maint-insurance-due').value || null, warn_days: parseInt(document.getElementById('maint-insurance-warn').value) || 30 },
+    deep_clean: { interval_days: parseInt(document.getElementById('maint-clean-interval').value) || 60, warn_days: parseInt(document.getElementById('maint-clean-warn').value) || 7 },
+  };
+  try {
+    await CFR.apiPatch('/api/config/vehicle', { maintenance });
+    CFR.toast('Maintenance schedule saved.', 'success');
+  } catch (e) { CFR.toast(e.message, 'error'); }
+}
+
+async function recordMaintenanceDone() {
+  const type    = document.getElementById('maint-log-type').value;
+  const done_at = document.getElementById('maint-log-date').value;
+  const notes   = document.getElementById('maint-log-notes').value.trim();
+  if (!done_at) { CFR.toast('Please set a date.', 'warning'); return; }
+  try {
+    await CFR.apiPost('/api/maintenance/log', { type, done_at, notes });
+    CFR.toast(`${MAINT_LABELS[type]} recorded.`, 'success');
+    document.getElementById('maint-log-notes').value = '';
+    loadMaintenanceHistory();
+  } catch (e) { CFR.toast(e.message, 'error'); }
+}
+
+async function loadMaintenanceHistory() {
+  const list = document.getElementById('maint-history-list');
+  try {
+    const { entries } = await CFR.apiGet('/api/maintenance/log');
+    if (!entries.length) {
+      list.innerHTML = '<p class="text-center text-muted text-sm" style="padding:16px;">No maintenance recorded yet.</p>';
+      return;
+    }
+    list.innerHTML = entries.map(e => `
+      <div style="display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--border);">
+        <div style="flex:1;">
+          <div style="font-weight:500; font-size:14px;">${MAINT_LABELS[e.type] || e.type}</div>
+          ${e.notes ? `<div style="font-size:12px; color:var(--text-muted);">${e.notes}</div>` : ''}
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); flex-shrink:0;">${CFR.fmtDate(e.done_at)}</div>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="alert alert-danger" style="margin:12px;"><span>⚠</span>${e.message}</div>`;
+  }
+}
 
 const METHOD_LABEL = { pin: 'PRF + PIN', device: 'Car tablet', setup: 'PIN setup', key: 'Access key' };
 

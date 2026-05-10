@@ -185,6 +185,26 @@ async function submitForm(endpoint, payload) {
   }
 }
 
+/* ── Vehicle config ──────────────────────────────────────────────────────── */
+
+function getVehicleConfig() {
+  const raw = localStorage.getItem('cfr_vehicle_config');
+  return raw ? JSON.parse(raw) : { callsign: 'RC0681', tread_warn_mm: 3.0 };
+}
+
+async function fetchVehicleConfig() {
+  try {
+    const data = await apiGet('/api/config/vehicle');
+    localStorage.setItem('cfr_vehicle_config', JSON.stringify(data.config));
+    applyCallsign(data.config.callsign);
+    return data.config;
+  } catch { return getVehicleConfig(); }
+}
+
+function applyCallsign(callsign) {
+  document.querySelectorAll('.callsign').forEach(el => { el.textContent = callsign; });
+}
+
 /* ── Navigation ──────────────────────────────────────────────────────────── */
 
 function buildNav() {
@@ -301,6 +321,9 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshSyncBadge();
   buildNav();
   buildHeader();
+  // Apply cached callsign immediately, then refresh in background
+  applyCallsign(getVehicleConfig().callsign);
+  if (isLoggedIn()) fetchVehicleConfig();
 });
 
 window.addEventListener('online', () => {
@@ -320,6 +343,8 @@ if ('serviceWorker' in navigator) {
 window.CFR = {
   // auth
   getUser, getAccessKey, isLoggedIn, hasRole, logout, lockDevice, requireAuth, requireRole, setOnShift,
+  // config
+  getVehicleConfig, fetchVehicleConfig,
   // api
   apiGet, apiPost, apiPatch, apiDelete, submitForm,
   // queue

@@ -70,10 +70,11 @@ export async function onRequestPost({ request, env, data }) {
   const id       = crypto.randomUUID();
   const now      = new Date().toISOString();
   const dateStr  = now.slice(0, 10);
+  const vcfg     = await env.CFR_DATA.get('config:vehicle', { type: 'json' });
 
   const shift = {
     id,
-    vehicle:        'RC0681',
+    vehicle:        vcfg?.callsign || 'RC0681',
     status:         'active',
     start_datetime: now,
     end_datetime:   null,

@@ -10,6 +10,7 @@ export async function onRequestPost({ request, env, data }) {
 
   if (!body.date) return Response.json({ error: 'date required' }, { status: 400 });
 
+  const vcfg   = await env.CFR_DATA.get('config:vehicle', { type: 'json' });
   const id     = crypto.randomUUID();
   const record = {
     id,
@@ -17,10 +18,12 @@ export async function onRequestPost({ request, env, data }) {
     completed_by_id:    user.id,
     completed_by_name:  user.name,
     date:               body.date,
-    vehicle:            'RC0681',
+    vehicle:            vcfg?.callsign || 'RC0681',
     starting_mileage:   body.starting_mileage ?? null,
     fuel_level:         body.fuel_level ?? null,
     oil_level:          body.oil_level ?? null,
+    tread_depth:             body.tread_depth ?? null,
+    tread_below_threshold:   body.tread_below_threshold ?? false,
     checks:             body.checks ?? {},
     defects_notes:      body.defects_notes ?? '',
     overall_pass:       body.overall_pass ?? true,

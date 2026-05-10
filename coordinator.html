@@ -12,7 +12,7 @@
 </head>
 <body>
   <header class="app-header">
-    <span class="header-logo">RC0681 <span>Coordinator</span></span>
+    <span class="header-logo"><span class="callsign">RC0681</span> <span>Coordinator</span></span>
     <span id="header-user"></span>
     <span id="sync-badge" class="sync-indicator sync-ok"></span>
   </header>
@@ -27,6 +27,7 @@
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="users"        onclick="switchTab('users')">Users</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="rota"         onclick="switchTab('rota')">Rota</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="stats"        onclick="switchTab('stats')">Stats</button>
+      <button class="btn btn-ghost btn-sm tab-btn" data-tab="vehicle"      onclick="switchTab('vehicle')">Vehicle</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="audit"        onclick="switchTab('audit')">Audit</button>
     </div>
 
@@ -230,6 +231,115 @@
     <div id="tab-stats" class="hidden">
       <div id="stats-content">
         <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+    <div id="tab-vehicle" class="hidden">
+
+      <!-- Scheme settings -->
+      <div class="card">
+        <p class="card-title">Scheme Settings</p>
+        <div class="form-group">
+          <label class="form-label">Vehicle Call Sign</label>
+          <input id="cfg-callsign" class="form-input" type="text" placeholder="e.g. RC0681">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Tyre Tread Warning Threshold (mm)</label>
+          <input id="cfg-tread" class="form-input" type="number" min="1.6" max="8" step="0.1" placeholder="e.g. 3">
+          <p class="form-hint">A warning will be shown on the VDI when any tyre falls below this value. Legal minimum is 1.6mm.</p>
+        </div>
+        <hr class="divider">
+        <button class="btn btn-primary btn-block" onclick="saveVehicleSettings()">Save Settings</button>
+      </div>
+
+      <!-- Maintenance dates -->
+      <div class="card">
+        <p class="card-title">Maintenance Schedule</p>
+        <p class="card-subtitle">Set due dates and warning periods for each item.</p>
+
+        <p class="section-heading">MOT</p>
+        <div class="form-row">
+          <div class="form-group mb-0">
+            <label class="form-label">Next Due</label>
+            <input id="maint-mot-due" class="form-input" type="date">
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Warn (days before)</label>
+            <input id="maint-mot-warn" class="form-input" type="number" min="1" placeholder="30">
+          </div>
+        </div>
+
+        <p class="section-heading">Service</p>
+        <div class="form-row">
+          <div class="form-group mb-0">
+            <label class="form-label">Next Due</label>
+            <input id="maint-service-due" class="form-input" type="date">
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Warn (days before)</label>
+            <input id="maint-service-warn" class="form-input" type="number" min="1" placeholder="14">
+          </div>
+        </div>
+
+        <p class="section-heading">Insurance</p>
+        <div class="form-row">
+          <div class="form-group mb-0">
+            <label class="form-label">Next Due</label>
+            <input id="maint-insurance-due" class="form-input" type="date">
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Warn (days before)</label>
+            <input id="maint-insurance-warn" class="form-input" type="number" min="1" placeholder="30">
+          </div>
+        </div>
+
+        <p class="section-heading">Deep Clean</p>
+        <div class="form-row">
+          <div class="form-group mb-0">
+            <label class="form-label">Repeat every (days)</label>
+            <input id="maint-clean-interval" class="form-input" type="number" min="1" placeholder="60">
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Warn (days before)</label>
+            <input id="maint-clean-warn" class="form-input" type="number" min="1" placeholder="7">
+          </div>
+        </div>
+
+        <hr class="divider">
+        <button class="btn btn-primary btn-block" onclick="saveMaintenanceSettings()">Save Schedule</button>
+      </div>
+
+      <!-- Maintenance log -->
+      <div class="card">
+        <p class="card-title">Mark as Done</p>
+        <p class="card-subtitle">Record when maintenance has been carried out. This updates the audit trail.</p>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select id="maint-log-type" class="form-select">
+            <option value="mot">MOT</option>
+            <option value="service">Service</option>
+            <option value="insurance">Insurance</option>
+            <option value="deep_clean">Deep Clean</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date Completed</label>
+          <input id="maint-log-date" class="form-input" type="date">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Notes (optional)</label>
+          <input id="maint-log-notes" class="form-input" type="text" placeholder="e.g. Garage name, mileage at service">
+        </div>
+        <hr class="divider">
+        <button class="btn btn-success btn-block" onclick="recordMaintenanceDone()">Record</button>
+      </div>
+
+      <!-- Maintenance history -->
+      <p class="section-heading">Maintenance History</p>
+      <div class="card" style="padding:0; overflow:hidden;">
+        <div id="maint-history-list">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
       </div>
     </div>
 
