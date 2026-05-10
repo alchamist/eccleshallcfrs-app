@@ -1,5 +1,5 @@
 // Bump this string on every deploy to evict stale caches from users' devices.
-const CACHE = 'cfr-v5';
+const CACHE = 'cfr-v6';
 
 const STATIC = [
   '/index.html',
@@ -12,6 +12,7 @@ const STATIC = [
   '/coordinator.html',
   '/compliance.html',
   '/availability.html',
+  '/defects.html',
   '/css/app.css',
   '/js/app.js',
   '/js/dashboard.js',
@@ -23,6 +24,7 @@ const STATIC = [
   '/js/coordinator.js',
   '/js/compliance.js',
   '/js/availability.js',
+  '/js/defects.js',
   '/manifest.json',
 ];
 

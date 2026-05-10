@@ -19,7 +19,7 @@ function switchTab(tab) {
   if (tab === 'users')     { loadUsers(); updateDeviceModeStatus(); }
   if (tab === 'rota')      { if (!_users.length) loadUsers(); loadRotaBlocks(); }
   if (tab === 'stats')       loadStats();
-  if (tab === 'vehicle')     loadVehicleSettings();
+  if (tab === 'vehicle')     { loadVehicleSettings(); loadUnavailability(); }
   if (tab === 'audit')       loadAuditLog();
 }
 
@@ -507,6 +507,83 @@ function renderReport(data, el) {
 
 const MAINT_LABELS = { mot: 'MOT', service: 'Service', insurance: 'Insurance', deep_clean: 'Deep Clean' };
 
+/* ── Vehicle unavailability ─────────────────────────────────────────────── */
+
+const UNAVAIL_LABELS = { mot: 'MOT', service: 'Service', deep_clean: 'Deep Clean', other: 'Other' };
+
+function updateUnavailEndMin() {
+  const d = document.getElementById('unavail-start-date').value;
+  document.getElementById('unavail-end-date').min = d;
+  if (document.getElementById('unavail-end-date').value < d)
+    document.getElementById('unavail-end-date').value = d;
+}
+
+async function addUnavailability() {
+  const startDate = document.getElementById('unavail-start-date').value;
+  const startTime = document.getElementById('unavail-start-time').value;
+  const endDate   = document.getElementById('unavail-end-date').value;
+  const endTime   = document.getElementById('unavail-end-time').value;
+  const reason    = document.getElementById('unavail-reason').value;
+  const notes     = document.getElementById('unavail-notes').value.trim();
+
+  if (!startDate || !endDate) { CFR.toast('Please set start and end date.', 'warning'); return; }
+
+  const startDT = `${startDate}T${startTime || '00:00'}`;
+  const endDT   = `${endDate}T${endTime || '23:59'}`;
+  if (endDT <= startDT) { CFR.toast('End must be after start.', 'warning'); return; }
+
+  try {
+    const { cancelled } = await CFR.apiPost('/api/vehicle/unavailability', {
+      start_datetime: startDT, end_datetime: endDT, reason, notes,
+    });
+
+    document.getElementById('unavail-start-date').value = '';
+    document.getElementById('unavail-end-date').value   = '';
+    document.getElementById('unavail-notes').value      = '';
+
+    if (cancelled.length) {
+      const names = cancelled.map(c => `${c.responder_name} (${CFR.fmtDate(c.date)} ${c.start_time})`).join(', ');
+      CFR.toast(`Booked. ${cancelled.length} shift${cancelled.length > 1 ? 's' : ''} cancelled: ${names}`, 'warning');
+    } else {
+      CFR.toast('Unavailability booked.', 'success');
+    }
+    loadUnavailability();
+  } catch (e) { CFR.toast(e.message, 'error'); }
+}
+
+async function loadUnavailability() {
+  const list = document.getElementById('unavail-list');
+  if (!list) return;
+  try {
+    const today = CFR.todayISO();
+    const { periods } = await CFR.apiGet(`/api/vehicle/unavailability?from=${today}`);
+    if (!periods.length) {
+      list.innerHTML = '<div class="card"><p class="text-muted text-sm text-center" style="padding:8px;">No upcoming unavailability.</p></div>';
+      return;
+    }
+    list.innerHTML = periods.map(p => `
+      <div class="card" style="margin-bottom:10px; display:flex; align-items:center; gap:12px;">
+        <div style="flex:1;">
+          <div style="font-weight:600; font-size:14px;">${UNAVAIL_LABELS[p.reason] || p.reason}</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">
+            ${CFR.fmtDateTime(p.start_datetime)} – ${CFR.fmtDateTime(p.end_datetime)}
+          </div>
+          ${p.notes ? `<div style="font-size:12px; color:var(--text-muted);">${p.notes}</div>` : ''}
+        </div>
+        <button class="btn btn-sm btn-ghost" onclick="deleteUnavailability('${p.id}')">Remove</button>
+      </div>`).join('');
+  } catch (e) { list.innerHTML = `<div class="alert alert-danger"><span>⚠</span>${e.message}</div>`; }
+}
+
+async function deleteUnavailability(id) {
+  if (!confirm('Remove this unavailability period? Any cancelled shifts will NOT be automatically restored.')) return;
+  try {
+    await CFR.apiDelete(`/api/vehicle/unavailability?id=${id}`);
+    CFR.toast('Removed.', 'success');
+    loadUnavailability();
+  } catch (e) { CFR.toast(e.message, 'error'); }
+}
+
 async function loadVehicleSettings() {
   try {
     const { config } = await CFR.apiGet('/api/config/vehicle');
@@ -661,8 +738,9 @@ const ROTA_DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 let _rotaBlocks       = [];
 let _openBlockId      = null;
-let _blockAvailability = [];
-let _blockShifts      = [];
+let _blockAvailability   = [];
+let _blockShifts         = [];
+let _blockUnavailability = [];
 
 function rotaDayDate(iso) {
   if (!iso) return '—';
@@ -830,12 +908,14 @@ async function openRotaBlock(blockId) {
     '<div class="loading"><div class="spinner"></div>Loading…</div>';
 
   try {
-    const [{ entries }, { shifts }] = await Promise.all([
+    const [{ entries }, { shifts }, { periods }] = await Promise.all([
       CFR.apiGet(`/api/rota/availability?block_id=${blockId}`),
       CFR.apiGet(`/api/rota/shifts?block_id=${blockId}`),
+      CFR.apiGet(`/api/vehicle/unavailability?from=${block?.start_date || ''}&to=${block?.end_date || ''}`),
     ]);
-    _blockAvailability = entries || [];
-    _blockShifts       = shifts  || [];
+    _blockAvailability  = entries || [];
+    _blockShifts        = shifts  || [];
+    _blockUnavailability = periods || [];
     renderBlockDetail(block);
   } catch (e) {
     document.getElementById('rota-block-days').innerHTML =
@@ -894,21 +974,55 @@ function renderBlockDetail(block) {
     const avail  = availByDay[date]  || [];
     const shifts = shiftsByDay[date] || [];
 
+    // Find unavailability periods that cover any part of this day
+    const dayStart = new Date(`${date}T00:00`);
+    const dayEnd   = new Date(`${date}T23:59`);
+    const unavailToday = _blockUnavailability.filter(p => {
+      const uStart = new Date(p.start_datetime);
+      const uEnd   = new Date(p.end_datetime);
+      return uStart < dayEnd && uEnd > dayStart;
+    });
+
+    const unavailHtml = unavailToday.map(p => {
+      const fmt = dt => dt.slice(11, 16);
+      const startFmt = p.start_datetime.slice(0, 10) === date ? fmt(p.start_datetime) : '00:00';
+      const endFmt   = p.end_datetime.slice(0, 10)   === date ? fmt(p.end_datetime)   : '23:59';
+      return `<div style="background:var(--red-light); border:1px solid #fca5a5; border-radius:6px;
+                          padding:6px 10px; margin-top:8px; font-size:12px; color:#7f1d1d;">
+        🚫 Vehicle unavailable ${startFmt}–${endFmt} — ${UNAVAIL_LABELS[p.reason] || p.reason}
+        ${p.notes ? ` (${p.notes})` : ''}
+      </div>`;
+    }).join('');
+
+    // Helper: does a time window overlap any unavailability on this date?
+    function timeBlocked(start, end) {
+      return unavailToday.some(p => {
+        const sdt = new Date(`${date}T${start}`);
+        const edt = new Date(`${date}T${end}`);
+        return sdt < new Date(p.end_datetime) && edt > new Date(p.start_datetime);
+      });
+    }
+
     const availHtml = avail.length ? `
       <div style="margin-top:8px;">
         <div style="font-size:11px; text-transform:uppercase; letter-spacing:.05em;
                     color:var(--text-muted); margin-bottom:4px;">Available</div>
-        ${avail.map(a => `
+        ${avail.map(a => {
+          const blocked = timeBlocked(a.start_time, a.end_time);
+          return `
           <div style="display:flex; align-items:center; gap:8px; padding:4px 0;
                       border-bottom:1px solid var(--border);">
-            <div style="flex:1; font-size:13px;">${a.responder_name} · ${a.start_time}–${a.end_time}
+            <div style="flex:1; font-size:13px; ${blocked ? 'opacity:.5;' : ''}">${a.responder_name} · ${a.start_time}–${a.end_time}
               ${a.notes ? `<span style="color:var(--text-muted); font-size:12px;"> — ${a.notes}</span>` : ''}
+              ${blocked ? `<span style="color:var(--red); font-size:11px;"> — vehicle unavailable</span>` : ''}
             </div>
             <button class="btn btn-sm btn-ghost" style="padding:2px 8px; flex-shrink:0;"
+                    ${blocked ? 'disabled title="Vehicle unavailable during this time"' : ''}
                     onclick="openAllocModal('${block.id}','${a.responder_id}','${date}','${a.start_time}','${a.end_time}')">
               Allocate
             </button>
-          </div>`).join('')}
+          </div>`;
+        }).join('')}
       </div>` : '';
 
     const shiftsHtml = shifts.length ? `
@@ -929,18 +1043,19 @@ function renderBlockDetail(block) {
           </div>`).join('')}
       </div>` : '';
 
-    const hasData = avail.length || shifts.length;
+    const hasData = avail.length || shifts.length || unavailToday.length;
     return `
-      <div class="card" style="margin-bottom:8px; padding:12px;">
+      <div class="card" style="margin-bottom:8px; padding:12px; ${unavailToday.length ? 'border-color:#fca5a5;' : ''}">
         <div style="font-weight:600; font-size:14px; display:flex; align-items:center;
                     justify-content:space-between;">
           ${rotaDayDate(date)}
           <span style="font-size:12px; color:var(--text-muted);">
             ${hasData
-              ? `${avail.length} avail · ${shifts.length} shift${shifts.length !== 1 ? 's' : ''}`
+              ? `${avail.length} avail · ${shifts.length} shift${shifts.length !== 1 ? 's' : ''}${unavailToday.length ? ' · 🚫 unavailable' : ''}`
               : 'No entries'}
           </span>
         </div>
+        ${unavailHtml}
         ${availHtml}
         ${shiftsHtml}
       </div>`;

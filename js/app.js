@@ -218,6 +218,7 @@ function buildNav() {
     { href: '/duty-hours.html',          icon: '🕐', label: 'Duty'   },
     { href: '/vehicle-inspection.html',  icon: '✅', label: 'VDI'    },
     { href: '/mileage-claim.html',       icon: '📄', label: 'Claim'  },
+    { href: '/defects.html',             icon: '⚠️', label: 'Faults' },
   ];
 
   if (!user?._device_mode) links.push({ href: '/availability.html', icon: '📅', label: 'Rota' });

@@ -39,6 +39,19 @@ export async function onRequestPost({ request, env, data }) {
   const block = await env.CFR_DATA.get(`rota_block:${block_id}`, { type: 'json' });
   if (!block) return Response.json({ error: 'Block not found' }, { status: 404 });
 
+  // Check vehicle unavailability overlap
+  const { keys: unavailKeys } = await env.CFR_DATA.list({ prefix: 'vehicle_unavail:' });
+  const unavailPeriods = (await Promise.all(unavailKeys.map(k => env.CFR_DATA.get(k.name, { type: 'json' })))).filter(Boolean);
+  const shiftStart = new Date(`${date}T${start_time}`);
+  const shiftEnd   = new Date(`${date}T${end_time}`);
+  const clash = unavailPeriods.find(p => shiftStart < new Date(p.end_datetime) && shiftEnd > new Date(p.start_datetime));
+  if (clash) {
+    return Response.json({
+      error: `Vehicle unavailable during this time (${clash.reason}${clash.notes ? ': ' + clash.notes : ''}).`,
+      code: 'VEHICLE_UNAVAILABLE',
+    }, { status: 409 });
+  }
+
   const id    = crypto.randomUUID();
   const shift = {
     id,

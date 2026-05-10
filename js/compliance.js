@@ -88,13 +88,47 @@ async function loadOverview() {
         </div>
       </div>
 
+      <p class="section-heading">Open Defects</p>
+      <div id="overview-defects-preview"></div>
+
       <p class="section-heading">Expiry Alerts</p>
       <div id="overview-expiry-preview"></div>`;
 
+    loadDefectsPreview();
     loadExpiryPreview();
   } catch (e) {
     content.innerHTML = `<div class="alert alert-danger"><span>⚠</span>${e.message}</div>`;
   }
+}
+
+async function loadDefectsPreview() {
+  const container = document.getElementById('overview-defects-preview');
+  if (!container) return;
+
+  try {
+    const { defects } = await CFR.apiGet('/api/defects');
+    const vehicle   = defects.filter(d => d.category === 'vehicle');
+    const equipment = defects.filter(d => d.category === 'equipment');
+
+    if (!defects.length) {
+      container.innerHTML = '<div class="alert alert-success"><span class="alert-icon">✓</span>No open defects on record.</div>';
+      return;
+    }
+
+    const rows = [
+      vehicle.length   ? `<strong>${vehicle.length}</strong> vehicle defect${vehicle.length !== 1 ? 's' : ''}` : null,
+      equipment.length ? `<strong>${equipment.length}</strong> equipment defect${equipment.length !== 1 ? 's' : ''}` : null,
+    ].filter(Boolean).join(' · ');
+
+    container.innerHTML = `
+      <div class="card" style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div>
+          <span class="rag rag-red" style="margin-right:6px;"></span>
+          ${rows} open
+        </div>
+        <a href="/defects.html" class="btn btn-sm btn-secondary">View Register</a>
+      </div>`;
+  } catch { /* non-fatal */ }
 }
 
 async function loadExpiryPreview() {

@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Defect Register — Eccleshall CFR</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="header-logo"><span class="callsign">RC0681</span> <span>Defect Register</span></span>
+    <span id="header-user"></span>
+    <span id="sync-badge" class="sync-indicator sync-ok"></span>
+  </header>
+
+  <main class="main-content">
+
+    <div style="display:flex; gap:6px; margin-bottom:16px;">
+      <button class="btn btn-primary btn-sm defect-tab-btn" data-tab="vehicle"   onclick="switchDefectTab('vehicle')">Vehicle</button>
+      <button class="btn btn-ghost btn-sm defect-tab-btn"   data-tab="equipment" onclick="switchDefectTab('equipment')">Equipment</button>
+    </div>
+
+    <div id="defect-tab-vehicle">
+      <div id="defect-list-vehicle"></div>
+    </div>
+
+    <div id="defect-tab-equipment" class="hidden">
+      <div id="defect-list-equipment"></div>
+    </div>
+
+  </main>
+
+  <!-- Resolve modal -->
+  <div id="resolve-modal" class="modal-overlay hidden">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <h2 class="modal-title">Mark as Resolved</h2>
+      <p id="resolve-modal-desc" style="font-size:14px; color:var(--text-muted); margin-bottom:12px;"></p>
+      <div class="form-group">
+        <label class="form-label">Resolution Notes (optional)</label>
+        <input id="resolve-notes" class="form-input" type="text"
+               placeholder="e.g. Part replaced, work completed by garage…">
+      </div>
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <button class="btn btn-ghost flex-1" onclick="closeResolveModal()">Cancel</button>
+        <button class="btn btn-primary flex-1" onclick="confirmResolve()">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <nav id="bottom-nav" class="bottom-nav"></nav>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/defects.js"></script>
+</body>
+</html>

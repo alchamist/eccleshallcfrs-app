@@ -44,8 +44,11 @@ async function loadBlocks() {
 
     el.innerHTML = '';
     for (const block of _blocks) {
-      const entries = await loadBlockAvailability(block.id);
-      el.appendChild(buildBlockCard(block, entries));
+      const [entries, unavail] = await Promise.all([
+        loadBlockAvailability(block.id),
+        loadBlockUnavailability(block.start_date, block.end_date),
+      ]);
+      el.appendChild(buildBlockCard(block, entries, unavail));
     }
   } catch (e) {
     el.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">⚠</span>${e.message}</div>`;
@@ -59,13 +62,40 @@ async function loadBlockAvailability(blockId) {
   } catch { return []; }
 }
 
-function buildBlockCard(block, myEntries) {
+async function loadBlockUnavailability(from, to) {
+  try {
+    const { periods } = await CFR.apiGet(`/api/vehicle/unavailability?from=${from}&to=${to}`);
+    return periods || [];
+  } catch { return []; }
+}
+
+const UNAVAIL_LABELS = { mot: 'MOT', service: 'Service', deep_clean: 'Deep Clean', other: 'Other' };
+
+function fmtDateTime(iso) {
+  const d = new Date(iso);
+  return `${DOW[d.getDay()]} ${d.getDate()} ${d.toLocaleString('en-GB', { month: 'short' })} ${d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
+}
+
+function buildBlockCard(block, myEntries, unavailPeriods = []) {
   const isOpen = block.status === 'open';
   const statusBadge = {
     open:      '<span class="badge badge-blue">Open</span>',
     published: '<span class="badge badge-green">Published</span>',
     closed:    '<span class="badge badge-grey">Closed</span>',
   };
+
+  const unavailHtml = unavailPeriods.length ? `
+    <div style="margin-bottom:10px;">
+      ${unavailPeriods.map(p => `
+        <div style="display:flex; align-items:flex-start; gap:8px; background:var(--red-light,#fff0f0); border:1px solid var(--red,#d9534f); border-radius:6px; padding:8px 10px; margin-bottom:6px; font-size:13px;">
+          <span style="color:var(--red,#d9534f); flex-shrink:0;">🚫</span>
+          <div>
+            <strong style="color:var(--red,#d9534f);">Vehicle unavailable — ${UNAVAIL_LABELS[p.reason] || p.reason}</strong>
+            <div style="color:var(--text-muted); margin-top:2px;">${fmtDateTime(p.start_datetime)} – ${fmtDateTime(p.end_datetime)}</div>
+            ${p.notes ? `<div style="color:var(--text-muted);">${p.notes}</div>` : ''}
+          </div>
+        </div>`).join('')}
+    </div>` : '';
 
   const entriesHtml = myEntries.length
     ? myEntries.map(e => `
@@ -124,6 +154,7 @@ function buildBlockCard(block, myEntries) {
       ${statusBadge[block.status] || `<span class="badge badge-grey">${block.status}</span>`}
     </div>
     ${block.notes ? `<p style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">${block.notes}</p>` : ''}
+    ${unavailHtml}
     ${formHtml}
     <div>${entriesHtml}</div>
   `;
