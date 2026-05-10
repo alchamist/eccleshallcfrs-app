@@ -296,6 +296,33 @@
     </div>
   </div>
 
+  <!-- Edit rota block modal -->
+  <div id="block-edit-modal" class="modal-overlay hidden" onclick="closeBlockEditModal(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <p class="modal-title">Edit Planning Block</p>
+      <input type="hidden" id="block-edit-id">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Start Date <span class="req">*</span></label>
+          <input id="block-edit-start" class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">End Date <span class="req">*</span></label>
+          <input id="block-edit-end" class="form-input" type="date">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <input id="block-edit-notes" class="form-input" type="text" placeholder="Optional notes">
+      </div>
+      <div style="display:flex; gap:8px; margin-top:4px;">
+        <button class="btn btn-primary flex-1" onclick="saveBlockEdit()">Save Changes</button>
+        <button class="btn btn-ghost" onclick="closeBlockEditModal()">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Allocate shift modal -->
   <div id="alloc-modal" class="modal-overlay hidden" onclick="closeAllocModal(event)">
     <div class="modal-sheet">

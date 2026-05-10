@@ -614,6 +614,10 @@ function renderRotaBlockList() {
         ${b.status === 'published'
           ? `<button class="btn btn-sm btn-ghost" onclick="setBlockStatus('${b.id}','closed')">Close</button>`
           : ''}
+        ${b.status === 'draft'
+          ? `<button class="btn btn-sm btn-ghost" onclick="openBlockEditModal('${b.id}')">Edit</button>
+             <button class="btn btn-sm btn-danger" onclick="deleteRotaBlock('${b.id}')">Delete</button>`
+          : ''}
       </div>
     </div>`).join('');
 }
@@ -646,6 +650,51 @@ async function setBlockStatus(blockId, status) {
     CFR.toast('Block updated.', 'success');
     loadRotaBlocks();
     if (_openBlockId === blockId) openRotaBlock(blockId);
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+function openBlockEditModal(blockId) {
+  const block = _rotaBlocks.find(b => b.id === blockId);
+  if (!block) return;
+  document.getElementById('block-edit-id').value    = blockId;
+  document.getElementById('block-edit-start').value = block.start_date;
+  document.getElementById('block-edit-end').value   = block.end_date;
+  document.getElementById('block-edit-notes').value = block.notes || '';
+  document.getElementById('block-edit-modal').classList.remove('hidden');
+}
+
+function closeBlockEditModal(e) {
+  if (e && e.target !== document.getElementById('block-edit-modal')) return;
+  document.getElementById('block-edit-modal').classList.add('hidden');
+}
+
+async function saveBlockEdit() {
+  const id    = document.getElementById('block-edit-id').value;
+  const start = document.getElementById('block-edit-start').value;
+  const end   = document.getElementById('block-edit-end').value;
+  const notes = document.getElementById('block-edit-notes').value.trim();
+
+  if (!start || !end) { CFR.toast('Please set start and end dates.', 'warning'); return; }
+  if (end < start)    { CFR.toast('End date must be after start date.', 'warning'); return; }
+
+  try {
+    await CFR.apiPatch('/api/rota/blocks', { id, start_date: start, end_date: end, notes });
+    document.getElementById('block-edit-modal').classList.add('hidden');
+    CFR.toast('Block updated.', 'success');
+    loadRotaBlocks();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+async function deleteRotaBlock(blockId) {
+  if (!confirm('Delete this planning block? This cannot be undone.')) return;
+  try {
+    await CFR.apiDelete(`/api/rota/blocks?id=${blockId}`);
+    CFR.toast('Block deleted.', 'success');
+    loadRotaBlocks();
   } catch (e) {
     CFR.toast(e.message, 'error');
   }

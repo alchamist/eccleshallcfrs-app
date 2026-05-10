@@ -57,6 +57,29 @@ export async function onRequestPost({ request, env, data }) {
   return Response.json({ block }, { status: 201 });
 }
 
+export async function onRequestDelete({ request, env, data }) {
+  const deny = requireCoordinator(data);
+  if (deny) return deny;
+
+  const url = new URL(request.url);
+  const id  = url.searchParams.get('id');
+  if (!id) return Response.json({ error: 'id required' }, { status: 400 });
+
+  const block = await env.CFR_DATA.get(`rota_block:${id}`, { type: 'json' });
+  if (!block) return Response.json({ error: 'Block not found' }, { status: 404 });
+  if (block.status !== 'draft') {
+    return Response.json({ error: 'Only draft blocks can be deleted.' }, { status: 409 });
+  }
+
+  await env.CFR_DATA.delete(`rota_block:${id}`);
+
+  const index = (await env.CFR_DATA.get('rota_blocks:index', { type: 'json' }) || [])
+    .filter(i => i !== id);
+  await env.CFR_DATA.put('rota_blocks:index', JSON.stringify(index));
+
+  return Response.json({ ok: true });
+}
+
 export async function onRequestPatch({ request, env, data }) {
   const deny = requireCoordinator(data);
   if (deny) return deny;
