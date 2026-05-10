@@ -93,15 +93,18 @@ async function fetchAll(kv, keys) {
     .filter(Boolean);
 }
 
+function allowedOrigin(origin) {
+  return origin.endsWith('.pages.dev') ||
+         origin.endsWith('.eccleshallcfrs.org.uk') ||
+         origin === 'https://eccleshallcfrs.org.uk';
+}
+
 function jsonResponse(data, request, status = 200) {
-  const origin  = request.headers.get('Origin') || '';
-  const allowed = 'https://eccleshallcfrs-site.pages.dev';
+  const origin = request.headers.get('Origin') || '';
   const headers = {
     'Content-Type': 'application/json',
     'Cache-Control': 'public, max-age=60',
-    ...(origin === allowed || origin.endsWith('.pages.dev')
-      ? { 'Access-Control-Allow-Origin': origin }
-      : {}),
+    ...(allowedOrigin(origin) ? { 'Access-Control-Allow-Origin': origin } : {}),
   };
   return new Response(JSON.stringify(data), { status, headers });
 }
