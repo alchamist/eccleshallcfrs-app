@@ -19,6 +19,7 @@ function switchTab(tab) {
   if (tab === 'users')     { loadUsers(); updateDeviceModeStatus(); }
   if (tab === 'rota')      { if (!_users.length) loadUsers(); loadRotaBlocks(); }
   if (tab === 'stats')       loadStats();
+  if (tab === 'audit')       loadAuditLog();
 }
 
 // ── Submissions ───────────────────────────────────────────────────────────────
@@ -500,6 +501,34 @@ function renderReport(data, el) {
 }
 
 // ── Stats ─────────────────────────────────────────────────────────────────────
+
+const METHOD_LABEL = { pin: 'PRF + PIN', device: 'Car tablet', setup: 'PIN setup', key: 'Access key' };
+
+async function loadAuditLog() {
+  const list = document.getElementById('audit-list');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  try {
+    const { entries } = await CFR.apiGet('/api/audit/logins');
+    if (!entries.length) {
+      list.innerHTML = '<p class="text-center text-muted text-sm" style="padding:20px;">No logins recorded yet.</p>';
+      return;
+    }
+    list.innerHTML = entries.map(e => `
+      <div style="display:flex; align-items:center; gap:12px; padding:10px 16px; border-bottom:1px solid var(--border);">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:500; font-size:14px;">${e.name || '—'}</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:1px;">
+            PRF ${e.prf_number || '—'} &middot; ${METHOD_LABEL[e.method] || e.method}
+          </div>
+        </div>
+        <div style="font-size:12px; color:var(--text-muted); text-align:right; flex-shrink:0;">
+          ${CFR.fmtDateTime(e.logged_at)}
+        </div>
+      </div>`).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="alert alert-danger" style="margin:12px;"><span>⚠</span>${e.message}</div>`;
+  }
+}
 
 async function loadStats() {
   const content = document.getElementById('stats-content');

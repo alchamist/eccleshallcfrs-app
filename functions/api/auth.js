@@ -51,6 +51,21 @@ function safeReturn(user) {
   return rest;
 }
 
+async function writeAuditLogin(env, request, user, method) {
+  try {
+    const entry = {
+      user_id:    user.id,
+      name:       user.name || '',
+      prf_number: user.prf_number || '',
+      method,
+      logged_at:  new Date().toISOString(),
+      ip:         request.headers.get('CF-Connecting-IP') || '',
+    };
+    const key = `audit_login:${entry.logged_at}:${crypto.randomUUID()}`;
+    await env.CFR_DATA.put(key, JSON.stringify(entry));
+  } catch { /* non-fatal */ }
+}
+
 export async function onRequestPost({ request, env }) {
   let body;
   try { body = await request.json(); } catch {
@@ -85,6 +100,7 @@ export async function onRequestPost({ request, env }) {
     const user = (await allUsers(env)).find(u => u.id === user_id && u.active);
     if (!user) return Response.json({ error: 'User not found.' }, { status: 404 });
     const { pin_hash: _h, pin_salt: _s, ...safeUser } = user;
+    await writeAuditLogin(env, request, user, 'device');
     // Device sessions are always responder-only — coordinator/compliance requires personal login
     return Response.json({
       user: { ...safeUser, roles: ['responder'], _device_mode: true },
@@ -99,6 +115,7 @@ export async function onRequestPost({ request, env }) {
     if (!user.pin_hash) return Response.json({ error: 'No PIN set yet.', code: 'NO_PIN' }, { status: 401 });
     const hash = await hashPin(pin, user.pin_salt);
     if (hash !== user.pin_hash) return Response.json({ error: 'Invalid PRF number or PIN.' }, { status: 401 });
+    await writeAuditLogin(env, request, user, 'pin');
     return Response.json({ user: safeReturn(user), access_key: user.access_key });
   }
 
@@ -114,6 +131,7 @@ export async function onRequestPost({ request, env }) {
     const hash    = await hashPin(new_pin, salt);
     const updated = { ...user, pin_hash: hash, pin_salt: salt, updated_at: new Date().toISOString() };
     await env.CFR_USERS.put(`user:${access_key.trim()}`, JSON.stringify(updated));
+    await writeAuditLogin(env, request, updated, 'setup');
     return Response.json({ user: safeReturn(updated), access_key: updated.access_key || access_key.trim() });
   }
 
@@ -122,6 +140,7 @@ export async function onRequestPost({ request, env }) {
     const user = await env.CFR_USERS.get(`user:${access_key.trim()}`, { type: 'json' });
     if (!user) return Response.json({ error: 'Invalid access key.' }, { status: 401 });
     if (!user.active) return Response.json({ error: 'Account disabled — contact your coordinator.' }, { status: 403 });
+    await writeAuditLogin(env, request, user, 'key');
     return Response.json({ user: safeReturn(user), access_key: user.access_key || access_key.trim() });
   }
 
