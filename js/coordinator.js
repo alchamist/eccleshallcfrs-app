@@ -614,7 +614,7 @@ function renderRotaBlockList() {
         ${b.status === 'published'
           ? `<button class="btn btn-sm btn-ghost" onclick="setBlockStatus('${b.id}','closed')">Close</button>`
           : ''}
-        ${b.status === 'draft'
+        ${['draft', 'open'].includes(b.status)
           ? `<button class="btn btn-sm btn-ghost" onclick="openBlockEditModal('${b.id}')">Edit</button>
              <button class="btn btn-sm btn-danger" onclick="deleteRotaBlock('${b.id}')">Delete</button>`
           : ''}
@@ -690,7 +690,11 @@ async function saveBlockEdit() {
 }
 
 async function deleteRotaBlock(blockId) {
-  if (!confirm('Delete this planning block? This cannot be undone.')) return;
+  const block = _rotaBlocks.find(b => b.id === blockId);
+  const msg = block?.status === 'open'
+    ? 'Delete this block? Any availability already submitted by responders will also be removed. This cannot be undone.'
+    : 'Delete this planning block? This cannot be undone.';
+  if (!confirm(msg)) return;
   try {
     await CFR.apiDelete(`/api/rota/blocks?id=${blockId}`);
     CFR.toast('Block deleted.', 'success');

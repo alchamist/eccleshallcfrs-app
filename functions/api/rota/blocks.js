@@ -67,9 +67,13 @@ export async function onRequestDelete({ request, env, data }) {
 
   const block = await env.CFR_DATA.get(`rota_block:${id}`, { type: 'json' });
   if (!block) return Response.json({ error: 'Block not found' }, { status: 404 });
-  if (block.status !== 'draft') {
-    return Response.json({ error: 'Only draft blocks can be deleted.' }, { status: 409 });
+  if (['published', 'closed'].includes(block.status)) {
+    return Response.json({ error: 'Published or closed blocks cannot be deleted.' }, { status: 409 });
   }
+
+  // Clean up any availability entries for this block
+  const { keys: availKeys } = await env.CFR_DATA.list({ prefix: `rota_avail:${id}:` });
+  await Promise.all(availKeys.map(k => env.CFR_DATA.delete(k.name)));
 
   await env.CFR_DATA.delete(`rota_block:${id}`);
 
