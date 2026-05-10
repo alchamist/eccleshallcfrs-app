@@ -192,7 +192,7 @@
           <div class="form-row">
             <div class="form-group mb-0">
               <label class="form-label">From</label>
-              <input id="rota-start" class="form-input" type="date">
+              <input id="rota-start" class="form-input" type="date" onchange="document.getElementById('rota-end').min=this.value; if(document.getElementById('rota-end').value && document.getElementById('rota-end').value < this.value) document.getElementById('rota-end').value='';">
             </div>
             <div class="form-group mb-0">
               <label class="form-label">To</label>
@@ -305,7 +305,7 @@
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Start Date <span class="req">*</span></label>
-          <input id="block-edit-start" class="form-input" type="date">
+          <input id="block-edit-start" class="form-input" type="date" onchange="document.getElementById('block-edit-end').min=this.value; if(document.getElementById('block-edit-end').value && document.getElementById('block-edit-end').value < this.value) document.getElementById('block-edit-end').value='';">
         </div>
         <div class="form-group">
           <label class="form-label">End Date <span class="req">*</span></label>
