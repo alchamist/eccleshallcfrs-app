@@ -29,6 +29,7 @@
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="stats"        onclick="switchTab('stats')">Stats</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="vehicle"      onclick="switchTab('vehicle')">Vehicle</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="audit"        onclick="switchTab('audit')">Audit</button>
+      <button class="btn btn-ghost btn-sm tab-btn" data-tab="training"     onclick="switchTab('training')">Training</button>
     </div>
 
     <!-- Submissions tab -->
@@ -398,6 +399,16 @@
         <div id="audit-list">
           <div class="loading"><div class="spinner"></div>Loading…</div>
         </div>
+      </div>
+    </div>
+
+    <div id="tab-training" class="hidden">
+      <div style="display:flex; gap:6px; margin-bottom:12px;">
+        <input id="training-from" class="form-input flex-1" type="date" onchange="loadTeamTraining()">
+        <input id="training-to"   class="form-input flex-1" type="date" onchange="loadTeamTraining()">
+      </div>
+      <div id="training-list">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
       </div>
     </div>
 

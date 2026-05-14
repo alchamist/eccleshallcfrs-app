@@ -21,6 +21,7 @@ function switchTab(tab) {
   if (tab === 'stats')       loadStats();
   if (tab === 'vehicle')     { loadVehicleSettings(); loadUnavailability(); }
   if (tab === 'audit')       loadAuditLog();
+  if (tab === 'training')    loadTeamTraining();
 }
 
 // ── Submissions ───────────────────────────────────────────────────────────────
@@ -1164,6 +1165,73 @@ async function deleteAllocShift() {
 // ── Init ──────────────────────────────────────────────────────────────────────
 
 // Set default date range to current month
+// ── Training ──────────────────────────────────────────────────────────────────
+
+async function loadTeamTraining() {
+  const list = document.getElementById('training-list');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+
+  const from = document.getElementById('training-from').value;
+  const to   = document.getElementById('training-to').value;
+
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to)   params.set('to', to);
+
+  try {
+    const { entries } = await CFR.apiGet(`/api/training?${params}`);
+
+    if (!entries || entries.length === 0) {
+      list.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">📚</div>
+          <h3>No training recorded</h3>
+          <p>No training logged for the selected period.</p>
+        </div>`;
+      return;
+    }
+
+    // Group by responder
+    const byUser = {};
+    entries.forEach(e => {
+      if (!byUser[e.user_id]) byUser[e.user_id] = { name: e.user_name, entries: [] };
+      byUser[e.user_id].entries.push(e);
+    });
+
+    const typeLabel = { mandatory: 'Mandatory', optional: 'Optional', refresher: 'Refresher' };
+    const typeColor = { mandatory: 'red', optional: 'blue', refresher: 'amber' };
+
+    list.innerHTML = Object.entries(byUser)
+      .sort(([,a], [,b]) => a.name.localeCompare(b.name))
+      .map(([userId, userData]) => {
+        const total = userData.entries.reduce((sum, e) => sum + e.hours, 0);
+        return `
+          <div class="card" style="margin-bottom:12px;">
+            <div style="font-weight:600; margin-bottom:8px;">
+              ${userData.name}
+              <span style="float:right; font-size:12px; color:var(--text-muted);">
+                <strong>${total}h</strong> total
+              </span>
+            </div>
+            ${userData.entries.map(e => `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-top:1px solid var(--border); font-size:13px;">
+                <div>
+                  ${CFR.fmtDate(e.date)} · ${e.hours}h
+                  ${e.description ? ` — ${e.description}` : ''}
+                </div>
+                <span class="badge badge-${typeColor[e.type] || 'grey'}" style="flex-shrink:0;">
+                  ${typeLabel[e.type] || e.type}
+                </span>
+              </div>`).join('')}
+          </div>`;
+      }).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">⚠</span>${e.message}</div>`;
+  }
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+
 const now   = new Date();
 const y     = now.getFullYear();
 const m     = String(now.getMonth() + 1).padStart(2, '0');
@@ -1176,5 +1244,7 @@ document.getElementById('export-from').value      = first;
 document.getElementById('export-to').value        = last;
 document.getElementById('duty-export-from').value = first;
 document.getElementById('duty-export-to').value   = last;
+document.getElementById('training-from').value    = first;
+document.getElementById('training-to').value      = last;
 
 loadSubmissions();

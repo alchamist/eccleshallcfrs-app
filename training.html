@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Training Log — Eccleshall CFR</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="header-logo"><span class="callsign">RC0681</span> <span>Training Log</span></span>
+    <span id="header-user"></span>
+    <span id="sync-badge" class="sync-indicator sync-ok"></span>
+  </header>
+
+  <main class="main-content">
+
+    <div id="success-msg" class="alert alert-success hidden" style="margin-bottom:16px;">
+      <span class="alert-icon">✓</span>
+      <span>Training logged successfully.</span>
+    </div>
+
+    <div class="card">
+      <div class="form-group">
+        <label class="form-label">Date <span class="req">*</span></label>
+        <input id="train-date" class="form-input" type="date">
+      </div>
+      <div class="form-row">
+        <div class="form-group mb-0">
+          <label class="form-label">Hours <span class="req">*</span></label>
+          <input id="train-hours" class="form-input" type="number" min="0.5" max="24" step="0.5" placeholder="e.g. 2">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Type <span class="req">*</span></label>
+          <select id="train-type" class="form-input">
+            <option value="mandatory">Mandatory</option>
+            <option value="optional">Optional</option>
+            <option value="refresher">Refresher</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Description / Course Name</label>
+        <input id="train-desc" class="form-input" type="text"
+               placeholder="e.g. First aid renewal, Leadership training…">
+      </div>
+      <hr class="divider">
+      <button id="submit-btn" class="btn btn-primary btn-block btn-lg">Log Training</button>
+    </div>
+
+    <p class="section-heading">Your Training History</p>
+    <div id="training-history"></div>
+
+  </main>
+
+  <nav id="bottom-nav" class="bottom-nav"></nav>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/training.js"></script>
+</body>
+</html>

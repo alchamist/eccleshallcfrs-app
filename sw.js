@@ -1,5 +1,5 @@
 // Bump this string on every deploy to evict stale caches from users' devices.
-const CACHE = 'cfr-v6';
+const CACHE = 'cfr-v7';
 
 const STATIC = [
   '/index.html',
@@ -7,6 +7,7 @@ const STATIC = [
   '/vehicle-shift.html',
   '/duty-hours.html',
   '/vehicle-inspection.html',
+  '/training.html',
   '/mileage-claim.html',
   '/monthly-check.html',
   '/coordinator.html',
@@ -19,6 +20,7 @@ const STATIC = [
   '/js/vehicle-shift.js',
   '/js/duty-hours.js',
   '/js/vehicle-inspection.js',
+  '/js/training.js',
   '/js/mileage-claim.js',
   '/js/monthly-check.js',
   '/js/coordinator.js',
