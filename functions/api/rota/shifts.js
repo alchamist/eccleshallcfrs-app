@@ -102,6 +102,23 @@ export async function onRequestPatch({ request, env, data }) {
     if (responder_id)    shift.responder_id   = responder_id;
     if (responder_name)  shift.responder_name = responder_name;
     if (type)            shift.type           = type;
+
+    // Check vehicle unavailability overlap if time/date changed
+    const shiftDate = date || shift.date;
+    const shiftStart = start_time || shift.start_time;
+    const shiftEnd = end_time || shift.end_time;
+    const shiftStartDT = new Date(`${shiftDate}T${shiftStart}`);
+    const shiftEndDT = new Date(`${shiftDate}T${shiftEnd}`);
+
+    const { keys: unavailKeys } = await env.CFR_DATA.list({ prefix: 'vehicle_unavail:' });
+    const unavailPeriods = (await Promise.all(unavailKeys.map(k => env.CFR_DATA.get(k.name, { type: 'json' })))).filter(Boolean);
+    const clash = unavailPeriods.find(p => shiftStartDT < new Date(p.end_datetime) && shiftEndDT > new Date(p.start_datetime));
+    if (clash) {
+      return Response.json({
+        error: `Vehicle unavailable during this time (${clash.reason}${clash.notes ? ': ' + clash.notes : ''}).`,
+        code: 'VEHICLE_UNAVAILABLE',
+      }, { status: 409 });
+    }
   }
   shift.updated_at = new Date().toISOString();
   shift.updated_by = user.id;

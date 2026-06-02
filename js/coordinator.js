@@ -1010,17 +1010,23 @@ function renderBlockDetail(block) {
                     color:var(--text-muted); margin-bottom:4px;">Available</div>
         ${avail.map(a => {
           const blocked = timeBlocked(a.start_time, a.end_time);
+          const alreadyAllocated = shifts.some(s =>
+            s.responder_id === a.responder_id &&
+            s.start_time === a.start_time &&
+            s.end_time === a.end_time
+          );
           return `
           <div style="display:flex; align-items:center; gap:8px; padding:4px 0;
                       border-bottom:1px solid var(--border);">
-            <div style="flex:1; font-size:13px; ${blocked ? 'opacity:.5;' : ''}">${a.responder_name} · ${a.start_time}–${a.end_time}
+            <div style="flex:1; font-size:13px; ${blocked || alreadyAllocated ? 'opacity:.5;' : ''}">${a.responder_name} · ${a.start_time}–${a.end_time}
               ${a.notes ? `<span style="color:var(--text-muted); font-size:12px;"> — ${a.notes}</span>` : ''}
               ${blocked ? `<span style="color:var(--red); font-size:11px;"> — vehicle unavailable</span>` : ''}
+              ${alreadyAllocated ? `<span style="color:var(--green); font-size:11px;"> ✓ allocated</span>` : ''}
             </div>
             <button class="btn btn-sm btn-ghost" style="padding:2px 8px; flex-shrink:0;"
-                    ${blocked ? 'disabled title="Vehicle unavailable during this time"' : ''}
+                    ${blocked || alreadyAllocated ? 'disabled title="' + (alreadyAllocated ? 'Already allocated' : 'Vehicle unavailable during this time') + '"' : ''}
                     onclick="openAllocModal('${block.id}','${a.responder_id}','${date}','${a.start_time}','${a.end_time}')">
-              Allocate
+              ${alreadyAllocated ? '✓ Allocated' : 'Allocate'}
             </button>
           </div>`;
         }).join('')}
@@ -1107,6 +1113,13 @@ function editAllocShift(blockId, shiftId) {
 function closeAllocModal(e) {
   if (e && e.target !== document.getElementById('alloc-modal')) return;
   document.getElementById('alloc-modal').classList.add('hidden');
+  document.getElementById('alloc-block-id').value = '';
+  document.getElementById('alloc-shift-id').value = '';
+  document.getElementById('alloc-date').value = '';
+  document.getElementById('alloc-start').value = '';
+  document.getElementById('alloc-end').value = '';
+  document.getElementById('alloc-notes').value = '';
+  document.getElementById('alloc-type').value = 'car';
 }
 
 async function saveAllocShift() {
