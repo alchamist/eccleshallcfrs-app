@@ -1,8 +1,22 @@
 CFR.requireAuth();
-CFR.requireRole('coordinator');
+
+// Require coordinator OR fire_safety_officer role
+if (!CFR.hasRole('coordinator') && !CFR.hasRole('fire_safety_officer')) {
+  window.location.href = '/dashboard.html';
+}
 
 let activeTab = 'submissions';
 let _users    = [];
+
+// If user is Fire Safety Officer only (not coordinator), restrict to fire-safety tab
+window.addEventListener('load', () => {
+  if (!CFR.hasRole('coordinator') && CFR.hasRole('fire_safety_officer')) {
+    document.querySelectorAll('[data-tab]').forEach(btn => {
+      if (btn.dataset.tab !== 'fire-safety') btn.classList.add('hidden');
+    });
+    switchTab('fire-safety');
+  }
+});
 
 function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => {
@@ -18,6 +32,7 @@ function switchTab(tab) {
   if (tab === 'report')      initReportPickers();
   if (tab === 'users')     { loadUsers(); updateDeviceModeStatus(); }
   if (tab === 'rota')      { if (!_users.length) loadUsers(); loadRotaBlocks(); }
+  if (tab === 'fire-safety') { if (!_users.length) loadUsers(); loadFireSafetyReports(); }
   if (tab === 'stats')       loadStats();
   if (tab === 'vehicle')     { loadVehicleSettings(); loadUnavailability(); }
   if (tab === 'audit')       loadAuditLog();
@@ -242,6 +257,7 @@ async function createUser() {
   if (document.getElementById('role-responder').checked)   roles.push('responder');
   if (document.getElementById('role-coordinator').checked) roles.push('coordinator');
   if (document.getElementById('role-compliance').checked)  roles.push('compliance');
+  if (document.getElementById('role-fire-safety').checked) roles.push('fire_safety_officer');
 
   if (!name)         { CFR.toast('Please enter a name.', 'warning'); return; }
   if (!roles.length) { CFR.toast('Please select at least one role.', 'warning'); return; }
@@ -256,6 +272,7 @@ async function createUser() {
     document.getElementById('role-responder').checked   = true;
     document.getElementById('role-coordinator').checked = false;
     document.getElementById('role-compliance').checked  = false;
+    document.getElementById('role-fire-safety').checked = false;
     loadUsers();
   } catch (e) {
     CFR.toast(e.message, 'error');
@@ -271,6 +288,7 @@ function openEditModal(accessKey) {
   document.getElementById('edit-role-responder').checked   = (user.roles || []).includes('responder');
   document.getElementById('edit-role-coordinator').checked = (user.roles || []).includes('coordinator');
   document.getElementById('edit-role-compliance').checked  = (user.roles || []).includes('compliance');
+  document.getElementById('edit-role-fire-safety').checked = (user.roles || []).includes('fire_safety_officer');
   document.getElementById('edit-modal').classList.remove('hidden');
 }
 
@@ -290,6 +308,7 @@ async function saveEdit() {
   if (document.getElementById('edit-role-responder').checked)   roles.push('responder');
   if (document.getElementById('edit-role-coordinator').checked) roles.push('coordinator');
   if (document.getElementById('edit-role-compliance').checked)  roles.push('compliance');
+  if (document.getElementById('edit-role-fire-safety').checked) roles.push('fire_safety_officer');
 
   if (!name)         { CFR.toast('Name is required.', 'warning'); return; }
   if (!roles.length) { CFR.toast('At least one role required.', 'warning'); return; }
@@ -1172,6 +1191,73 @@ async function deleteAllocShift() {
     openRotaBlock(blockId);
   } catch (e) {
     CFR.toast(e.message, 'error');
+  }
+}
+
+// ── Fire Safety ───────────────────────────────────────────────────────────
+
+async function loadFireSafetyReports() {
+  const content = document.getElementById('fire-safety-content');
+  content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+
+  const from = document.getElementById('fs-from').value;
+  const to   = document.getElementById('fs-to').value;
+
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to)   params.set('to', to);
+
+  try {
+    const [alarm, lighting, extinguisher] = await Promise.all([
+      CFR.apiGet(`/api/fire-safety/alarm-test?${params}`),
+      CFR.apiGet(`/api/fire-safety/lighting-test?${params}`),
+      CFR.apiGet(`/api/fire-safety/extinguisher-test?${params}`),
+    ]);
+
+    const getLastDate = (items) => {
+      if (!items.length) return 'Never';
+      return CFR.fmtDate(items[0].date);
+    };
+
+    const renderReportCard = (title, items, icon) => {
+      const lastDate = getLastDate(items);
+      const lastItem = items.length ? items[0] : null;
+      const daysAgo = lastItem ? Math.floor((new Date() - new Date(lastItem.date + 'T00:00')) / (1000 * 60 * 60 * 24)) : null;
+
+      return `
+        <div class="card">
+          <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px;">
+            <span style="font-size:20px;">${icon}</span>
+            <div style="flex:1;">
+              <div style="font-weight:600;">${title}</div>
+              <div style="font-size:12px; color:var(--text-muted);">Last: ${lastDate}${daysAgo !== null ? ` (${daysAgo} days ago)` : ''}</div>
+            </div>
+          </div>
+          ${items.length ? `
+            <div style="padding-top:8px; border-top:1px solid var(--border);">
+              ${items.slice(0, 5).map(item => `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; font-size:13px;">
+                  <div>
+                    <strong>${item.responder_name}</strong> · ${CFR.fmtDate(item.date)}
+                    <span style="color:var(--text-muted);">${item.status}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          ` : `
+            <div style="text-align:center; padding:12px; color:var(--text-muted); font-size:13px;">No records</div>
+          `}
+        </div>
+      `;
+    };
+
+    content.innerHTML = `
+      ${renderReportCard('🔔 Weekly Fire Alarm Test', alarm.items || [], '🔔')}
+      ${renderReportCard('💡 Monthly Emergency Lighting Test', lighting.items || [], '💡')}
+      ${renderReportCard('🧯 Annual Fire Extinguisher Test', extinguisher.items || [], '🧯')}
+    `;
+  } catch (e) {
+    content.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">⚠</span>${e.message}</div>`;
   }
 }
 

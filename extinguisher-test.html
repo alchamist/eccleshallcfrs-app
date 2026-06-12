@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#1d4ed8">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <title>Fire Extinguisher Test — Eccleshall CFR</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="header-logo"><span class="callsign">RC0681</span> <span>Fire Extinguisher Test</span></span>
+    <span id="header-user"></span>
+    <span id="sync-badge" class="sync-indicator sync-ok"></span>
+  </header>
+
+  <main class="main-content">
+    <div id="success-msg" class="alert alert-success hidden" style="margin-bottom:12px;">
+      <span class="alert-icon">✓</span>
+      <div>Check recorded</div>
+    </div>
+    <div id="queued-msg" class="alert alert-warning hidden" style="margin-bottom:12px;">
+      <span class="alert-icon">📱</span>
+      <div>Submitted when online</div>
+    </div>
+
+    <div class="card">
+      <p class="card-title">Annual Fire Extinguisher Test</p>
+      <p class="card-subtitle" style="color:var(--text-muted);">Fire Safety Officer and Coordinator only</p>
+
+      <div class="form-group">
+        <label class="form-label">Date <span class="req">*</span></label>
+        <input id="check-date" class="form-input" type="date">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Number of Extinguishers Checked <span class="req">*</span></label>
+        <input id="num-extinguishers" class="form-input" type="number" min="0" placeholder="e.g. 5">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Status <span class="req">*</span></label>
+        <div style="display:flex; flex-direction:column; gap:8px; margin-top:6px;">
+          <label style="display:flex; gap:8px; align-items:center;">
+            <input type="radio" name="status" value="pass"> ✓ Pass
+          </label>
+          <label style="display:flex; gap:8px; align-items:center;">
+            <input type="radio" name="status" value="fail"> ✗ Fail
+          </label>
+          <label style="display:flex; gap:8px; align-items:center;">
+            <input type="radio" name="status" value="maintenance"> 🔧 Maintenance Required
+          </label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Locations Tested (optional)</label>
+        <textarea id="locations" class="form-input" placeholder="e.g. Ground floor, Kitchen, Hallway" style="min-height:80px;"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Tested By (optional)</label>
+        <input id="tested-by" class="form-input" type="text" placeholder="Will auto-fill with your name">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Notes (optional)</label>
+        <textarea id="check-notes" class="form-input" placeholder="e.g. All tags current, safety pins intact" style="min-height:80px;"></textarea>
+      </div>
+
+      <button id="submit-btn" class="btn btn-primary btn-block btn-lg">Record Check</button>
+    </div>
+  </main>
+
+  <nav id="bottom-nav" class="bottom-nav"></nav>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/fire-extinguisher-test.js"></script>
+</body>
+</html>

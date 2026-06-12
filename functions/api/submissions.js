@@ -2,8 +2,9 @@
 // DELETE /api/submissions?key=KV_KEY — delete a specific record (coordinator only)
 
 function requireCoordinator(data) {
-  if (!data.user.roles?.includes('coordinator')) {
-    return Response.json({ error: 'Coordinator role required' }, { status: 403 });
+  const isCoord = data.user.roles?.includes('coordinator') || data.user.roles?.includes('fire_safety_officer');
+  if (!isCoord) {
+    return Response.json({ error: 'Coordinator or Fire Safety Officer role required' }, { status: 403 });
   }
   return null;
 }
@@ -13,7 +14,7 @@ export async function onRequestGet({ request, env, data }) {
   if (deny) return deny;
 
   const url  = new URL(request.url);
-  const type = url.searchParams.get('type'); // duty|vshift|vdi|claim|monthly
+  const type = url.searchParams.get('type'); // duty|vshift|vdi|claim|monthly|fire_alarm|fire_lighting|fire_extinguisher
   const from = url.searchParams.get('from');
   const to   = url.searchParams.get('to');
 
@@ -25,6 +26,9 @@ export async function onRequestGet({ request, env, data }) {
         { prefix: 'vdi:',     t: 'vdi'     },
         { prefix: 'claim:',   t: 'claim'   },
         { prefix: 'monthly:', t: 'monthly' },
+        { prefix: 'fire_safety:alarm:', t: 'fire_alarm' },
+        { prefix: 'fire_safety:lighting:', t: 'fire_lighting' },
+        { prefix: 'fire_safety:extinguisher:', t: 'fire_extinguisher' },
       ];
 
   const allRecords = (await Promise.all(
@@ -73,7 +77,7 @@ export async function onRequestDelete({ request, env, data }) {
   const url = new URL(request.url);
   const key = url.searchParams.get('key');
 
-  if (!key || key === 'vshift:active' || !key.match(/^(duty|vshift|vdi|claim|monthly):/)) {
+  if (!key || key === 'vshift:active' || !key.match(/^(duty|vshift|vdi|claim|monthly|fire_safety):/)) {
     return Response.json({ error: 'Invalid key' }, { status: 400 });
   }
 

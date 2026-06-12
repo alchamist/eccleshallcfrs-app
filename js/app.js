@@ -223,7 +223,19 @@ function buildNav() {
   ];
 
   if (!user?._device_mode) links.push({ href: '/availability.html', icon: '📅', label: 'Rota' });
-  if (hasRole('coordinator')) links.push({ href: '/coordinator.html', icon: '⚙️', label: 'Admin' });
+
+  if (hasRole('responder')) {
+    links.push({ href: '/fire-alarm-test.html', icon: '🔔', label: 'Fire Alarm' });
+    links.push({ href: '/emergency-lighting-test.html', icon: '💡', label: 'Lighting' });
+  }
+
+  if (hasRole('fire_safety_officer') || hasRole('coordinator')) {
+    links.push({ href: '/extinguisher-test.html', icon: '🧯', label: 'Extinguisher' });
+  }
+
+  if (hasRole('coordinator') || hasRole('fire_safety_officer')) {
+    links.push({ href: '/coordinator.html', icon: '⚙️', label: 'Admin' });
+  }
   if (hasRole('compliance'))  links.push({ href: '/compliance.html',  icon: '📋', label: 'Comply' });
 
   const cur = location.pathname;

@@ -26,6 +26,7 @@
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="export"       onclick="switchTab('export')">Export</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="users"        onclick="switchTab('users')">Users</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="rota"         onclick="switchTab('rota')">Rota</button>
+      <button class="btn btn-ghost btn-sm tab-btn" data-tab="fire-safety"  onclick="switchTab('fire-safety')">Fire Safety</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="stats"        onclick="switchTab('stats')">Stats</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="vehicle"      onclick="switchTab('vehicle')">Vehicle</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="audit"        onclick="switchTab('audit')">Audit</button>
@@ -156,6 +157,9 @@
             <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
               <input type="checkbox" id="role-compliance"> Compliance
             </label>
+            <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
+              <input type="checkbox" id="role-fire-safety"> Fire Safety Officer
+            </label>
           </div>
         </div>
         <hr class="divider">
@@ -231,6 +235,17 @@
     <!-- Stats tab -->
     <div id="tab-stats" class="hidden">
       <div id="stats-content">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+    <!-- Fire Safety tab -->
+    <div id="tab-fire-safety" class="hidden">
+      <div style="display:flex; gap:6px; margin-bottom:12px;">
+        <input id="fs-from" class="form-input flex-1" type="date" onchange="loadFireSafetyReports()">
+        <input id="fs-to"   class="form-input flex-1" type="date" onchange="loadFireSafetyReports()">
+      </div>
+      <div id="fire-safety-content">
         <div class="loading"><div class="spinner"></div>Loading…</div>
       </div>
     </div>
@@ -441,6 +456,9 @@
           </label>
           <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
             <input type="checkbox" id="edit-role-compliance"> Compliance
+          </label>
+          <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
+            <input type="checkbox" id="edit-role-fire-safety"> Fire Safety Officer
           </label>
         </div>
       </div>
