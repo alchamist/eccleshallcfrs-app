@@ -213,10 +213,10 @@ function buildNav() {
 
   const user  = getUser();
   const links = [
-    { href: '/dashboard.html',          icon: '🏠', label: 'Home'   },
-    { href: '/vehicle-shift.html',       icon: '🚗', label: 'Shift'  },
-    { href: '/duty-hours.html',          icon: '🕐', label: 'Duty'   },
-    { href: '/vehicle-inspection.html',  icon: '✅', label: 'VDI'    },
+    { href: '/dashboard.html',          icon: '🏠', label: 'Home', priority: true },
+    { href: '/vehicle-shift.html',       icon: '🚗', label: 'Shift', priority: true  },
+    { href: '/duty-hours.html',          icon: '🕐', label: 'Duty' },
+    { href: '/vehicle-inspection.html',  icon: '✅', label: 'VDI', priority: true    },
     { href: '/training.html',            icon: '📚', label: 'Training' },
     { href: '/mileage-claim.html',       icon: '📄', label: 'Claim'  },
     { href: '/defects.html',             icon: '⚠️', label: 'Faults' },
@@ -234,18 +234,46 @@ function buildNav() {
   }
 
   if (hasRole('coordinator') || hasRole('fire_safety_officer')) {
-    links.push({ href: '/coordinator.html', icon: '⚙️', label: 'Admin' });
+    links.push({ href: '/coordinator.html', icon: '⚙️', label: 'Admin', priority: true });
   }
   if (hasRole('compliance'))  links.push({ href: '/compliance.html',  icon: '📋', label: 'Comply' });
 
   const cur = location.pathname;
-  nav.innerHTML = links.map(l => {
+  const priorityLinks = links.filter(l => l.priority);
+  const otherLinks = links.filter(l => !l.priority);
+
+  nav.innerHTML = priorityLinks.map(l => {
     const active = cur === l.href || cur.endsWith(l.href.replace('/', ''));
     return `<a href="${l.href}" class="nav-item${active ? ' active' : ''}">
       <span class="nav-icon">${l.icon}</span>
       <span>${l.label}</span>
     </a>`;
   }).join('');
+
+  if (otherLinks.length) {
+    nav.innerHTML += `<button id="nav-more-btn" class="nav-item" style="border:none; background:none; cursor:pointer; padding:0; display:flex; flex-direction:column; align-items:center; gap:2px; color:inherit;">
+      <span class="nav-icon">•••</span>
+      <span style="font-size:11px;">More</span>
+    </button>`;
+
+    const moreDiv = document.createElement('div');
+    moreDiv.id = 'nav-more-menu';
+    moreDiv.style.cssText = 'position:fixed; bottom:60px; right:0; background:white; border-top:1px solid var(--border); box-shadow:0 -2px 8px rgba(0,0,0,0.1); display:none; width:100%; max-height:300px; overflow-y:auto; z-index:1000;';
+    moreDiv.innerHTML = otherLinks.map(l => {
+      const active = cur === l.href || cur.endsWith(l.href.replace('/', ''));
+      return `<a href="${l.href}" class="nav-item${active ? ' active' : ''}" style="display:flex; width:100%; text-align:left; padding:12px 16px; border-bottom:1px solid var(--border); gap:12px;">
+        <span class="nav-icon">${l.icon}</span>
+        <span>${l.label}</span>
+      </a>`;
+    }).join('');
+    document.body.appendChild(moreDiv);
+
+    document.getElementById('nav-more-btn').addEventListener('click', () => {
+      const menu = document.getElementById('nav-more-menu');
+      menu.style.display = menu.style.display === 'none' ? 'flex' : 'none';
+      menu.style.flexDirection = 'column';
+    });
+  }
 }
 
 function buildHeader() {
