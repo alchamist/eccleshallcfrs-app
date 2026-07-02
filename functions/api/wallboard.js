@@ -17,16 +17,68 @@ async function getDVLAData(env, config) {
         cache = {
           vrm:        config.vrm.toUpperCase(),
           fetched_at: new Date().toISOString(),
-          mot_expiry: d.motExpiryDate    || null,
-          mot_status: d.motStatus        || null,
-          tax_due:    d.taxDueDate       || null,
-          tax_status: d.taxStatus        || null,
+          mot_expiry: d.motExpiryDate || null,
+          mot_status: d.motStatus     || null,
+          tax_due:    d.taxDueDate    || null,
+          tax_status: d.taxStatus     || null,
         };
         await env.CFR_DATA.put(DVLA_CACHE_KEY, JSON.stringify(cache));
       }
     } catch { /* keep stale cache */ }
   }
   return cache || null;
+}
+
+async function getDutyStatus(env) {
+  const activeId = await env.CFR_DATA.get('vshift:active');
+  if (!activeId) return { active: false, crew: [] };
+
+  const { keys } = await env.CFR_DATA.list({ prefix: 'vshift:' });
+  const k = keys.find(k => k.name !== 'vshift:active' && k.name.includes(activeId));
+  if (!k) return { active: false, crew: [] };
+
+  const shift = await env.CFR_DATA.get(k.name, { type: 'json' });
+  if (!shift || shift.status !== 'active') return { active: false, crew: [] };
+
+  const crew = (shift.crew || []).filter(c => !c.signed_off);
+  if (!crew.length) return { active: false, crew: [] };
+
+  return {
+    active:     true,
+    crew:       crew.map(c => ({ name: c.name, role: c.role })),
+    started_at: shift.start_time || null,
+    shift_date: shift.date       || null,
+  };
+}
+
+async function getStats(env) {
+  const now   = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  const yearStart  = `${now.getFullYear()}-01-01`;
+
+  const [{ keys: dutyKeys }, { keys: claimKeys }] = await Promise.all([
+    env.CFR_DATA.list({ prefix: 'duty:' }),
+    env.CFR_DATA.list({ prefix: 'claim:' }),
+  ]);
+
+  const [dutyRecords, claimRecords] = await Promise.all([
+    Promise.all(dutyKeys.map(k => env.CFR_DATA.get(k.name, { type: 'json' }))).then(r => r.filter(Boolean)),
+    Promise.all(claimKeys.map(k => env.CFR_DATA.get(k.name, { type: 'json' }))).then(r => r.filter(Boolean)),
+  ]);
+
+  const incidents = claimRecords.filter(c => c.incident_type && c.incident_type !== 'na');
+
+  const incToday = incidents.filter(c => (c.date || '') === today).length;
+  const incMonth = incidents.filter(c => (c.date || '') >= monthStart).length;
+  const incYear  = incidents.filter(c => (c.date || '') >= yearStart).length;
+
+  const dutyThisMonth = dutyRecords.filter(d => (d.date || '') >= monthStart);
+  const hoursThisMonth = Math.round(
+    dutyThisMonth.reduce((s, d) => s + (d.duration_mins || 0), 0) / 6
+  ) / 10; // 1 dp
+
+  return { incToday, incMonth, incYear, hoursThisMonth };
 }
 
 export async function onRequestGet({ env, request }) {
@@ -68,7 +120,11 @@ export async function onRequestGet({ env, request }) {
     deep_clean: { interval_days: 60, warn_days: 7 },
   };
 
-  const dvla = await getDVLAData(env, config);
+  const [dvla, duty, stats] = await Promise.all([
+    getDVLAData(env, config),
+    getDutyStatus(env),
+    getStats(env),
+  ]);
 
   return Response.json({
     callsign:             config.callsign || 'RC0681',
@@ -77,5 +133,7 @@ export async function onRequestGet({ env, request }) {
     current_mileage_date: latestVDI?.date ?? null,
     last_maintenance:     lastMaint,
     dvla,
+    duty,
+    stats,
   });
 }

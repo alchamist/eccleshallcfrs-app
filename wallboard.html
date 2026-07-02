@@ -9,21 +9,22 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --green:  #166534;
-      --green-bg: #dcfce7;
-      --amber:  #92400e;
-      --amber-bg: #fef3c7;
-      --red:    #991b1b;
-      --red-bg: #fee2e2;
-      --grey:   #374151;
-      --grey-bg: #f3f4f6;
-      --navy:   #1e3a5f;
+      --green:     #166534;  --green-bg:  #dcfce7;
+      --amber:     #92400e;  --amber-bg:  #fef3c7;
+      --red:       #991b1b;  --red-bg:    #fee2e2;
+      --grey:      #374151;  --grey-bg:   #f3f4f6;
+      --blue:      #1e40af;  --blue-bg:   #dbeafe;
+      --navy:      #1e3a5f;
+      --surface:   #1e293b;
+      --border:    #334155;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background: #0f172a;
-      color: #fff;
+      color: var(--text);
       height: 100dvh;
       display: flex;
       flex-direction: column;
@@ -42,180 +43,156 @@
       gap: 24px;
       z-index: 100;
     }
-
     #pin-screen.hidden { display: none; }
 
-    .pin-logo {
-      font-size: 22px;
-      font-weight: 700;
-      color: #94a3b8;
-      letter-spacing: 0.05em;
-    }
-
-    .pin-title {
-      font-size: 28px;
-      font-weight: 600;
-      color: #f1f5f9;
-    }
+    .pin-logo  { font-size: 22px; font-weight: 700; color: var(--muted); letter-spacing: .05em; }
+    .pin-title { font-size: 28px; font-weight: 600; }
 
     .pin-input {
-      font-size: 32px;
-      font-weight: 700;
-      text-align: center;
-      letter-spacing: 0.3em;
-      width: 200px;
-      padding: 12px 16px;
-      border: 2px solid #334155;
-      border-radius: 12px;
-      background: #1e293b;
-      color: #f1f5f9;
-      outline: none;
+      font-size: 32px; font-weight: 700; text-align: center;
+      letter-spacing: .3em; width: 200px; padding: 12px 16px;
+      border: 2px solid var(--border); border-radius: 12px;
+      background: var(--surface); color: var(--text); outline: none;
     }
-
     .pin-input:focus { border-color: #3b82f6; }
 
     .pin-btn {
-      padding: 14px 48px;
-      font-size: 18px;
-      font-weight: 600;
-      background: #3b82f6;
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      cursor: pointer;
+      padding: 14px 48px; font-size: 18px; font-weight: 600;
+      background: #3b82f6; color: #fff; border: none; border-radius: 12px; cursor: pointer;
     }
-
     .pin-btn:active { background: #2563eb; }
-
-    .pin-error {
-      color: #f87171;
-      font-size: 16px;
-      min-height: 24px;
-    }
+    .pin-error { color: #f87171; font-size: 16px; min-height: 24px; }
 
     /* ── Dashboard ──────────────────────────────────────────────────────────── */
 
     #dashboard { display: flex; flex-direction: column; height: 100dvh; }
     #dashboard.hidden { display: none; }
 
+    /* Header */
     .wb-header {
       background: var(--navy);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 14px 28px;
-      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 12px 24px; flex-shrink: 0;
+    }
+    .wb-logo      { font-size: 20px; font-weight: 700; letter-spacing: .04em; }
+    .wb-callsign  { color: #93c5fd; margin-right: 6px; }
+    .wb-clock     { font-size: 32px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .wb-date-line { font-size: 13px; color: var(--muted); text-align: right; }
+
+    /* Main layout */
+    .wb-main {
+      display: flex; flex-direction: column;
+      flex: 1; min-height: 0; gap: 12px; padding: 12px;
     }
 
-    .wb-logo {
-      font-size: 20px;
-      font-weight: 700;
-      letter-spacing: 0.04em;
-      color: #e2e8f0;
-    }
-
-    .wb-callsign {
-      color: #93c5fd;
-      margin-right: 8px;
-    }
-
-    .wb-clock {
-      font-size: 28px;
-      font-weight: 700;
-      font-variant-numeric: tabular-nums;
-      color: #e2e8f0;
-    }
-
-    .wb-date {
-      font-size: 14px;
-      color: #94a3b8;
-      text-align: right;
-      line-height: 1.2;
-    }
-
-    .wb-grid {
+    /* Compliance row */
+    .wb-compliance-row {
       display: grid;
       grid-template-columns: repeat(5, 1fr);
-      gap: 16px;
-      padding: 16px;
-      flex: 1;
-      min-height: 0;
-    }
-
-    .wb-card {
-      border-radius: 16px;
-      padding: 24px 20px;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      min-height: 0;
-    }
-
-    .wb-card.green  { background: var(--green-bg);  color: var(--green);  }
-    .wb-card.amber  { background: var(--amber-bg);  color: var(--amber);  }
-    .wb-card.red    { background: var(--red-bg);    color: var(--red);    }
-    .wb-card.grey   { background: var(--grey-bg);   color: var(--grey);   }
-
-    .wb-card-label {
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      opacity: 0.7;
-    }
-
-    .wb-card-status {
-      font-size: clamp(36px, 5vw, 56px);
-      font-weight: 800;
-      line-height: 1;
-      margin: 12px 0 8px;
-    }
-
-    .wb-card-detail {
-      font-size: clamp(13px, 1.4vw, 16px);
-      font-weight: 500;
-      line-height: 1.5;
-      opacity: 0.85;
-    }
-
-    .wb-card-sub {
-      font-size: clamp(11px, 1.2vw, 14px);
-      opacity: 0.65;
-      margin-top: 4px;
-    }
-
-    .wb-footer {
-      background: #1e293b;
-      padding: 10px 28px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      gap: 12px;
       flex-shrink: 0;
     }
 
-    .wb-mileage {
-      font-size: 15px;
-      color: #94a3b8;
+    /* Compliance cards */
+    .wb-card {
+      border-radius: 14px; padding: 16px 14px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .wb-card.green { background: var(--green-bg); color: var(--green); }
+    .wb-card.amber { background: var(--amber-bg); color: var(--amber); }
+    .wb-card.red   { background: var(--red-bg);   color: var(--red);   }
+    .wb-card.grey  { background: var(--grey-bg);  color: var(--grey);  }
+
+    .wb-card-label  { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; opacity: .65; }
+    .wb-card-status { font-size: clamp(28px, 3.5vw, 44px); font-weight: 800; line-height: 1; margin: 8px 0 6px; }
+    .wb-card-detail { font-size: clamp(12px, 1.2vw, 14px); font-weight: 500; line-height: 1.4; opacity: .85; }
+    .wb-card-sub    { font-size: 11px; opacity: .6; margin-top: 3px; }
+    .wb-dvla-badge  { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; opacity: .5; margin-top: 3px; }
+
+    /* Info row */
+    .wb-info-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1; min-height: 0;
     }
 
-    .wb-mileage strong { color: #e2e8f0; }
-
-    .wb-refresh {
-      font-size: 12px;
-      color: #475569;
+    .wb-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 24px;
+      display: flex; flex-direction: column;
+      overflow: hidden;
     }
 
-    .wb-dvla-badge {
-      font-size: 10px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      opacity: 0.5;
-      margin-top: 4px;
+    .wb-panel-title {
+      font-size: 13px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .1em;
+      color: var(--muted); margin-bottom: 16px; flex-shrink: 0;
     }
 
-    @media (max-width: 800px) {
-      .wb-grid { grid-template-columns: 1fr 1fr 1fr; }
+    /* Duty panel */
+    .wb-duty-status {
+      font-size: clamp(22px, 2.5vw, 32px); font-weight: 800;
+      margin-bottom: 12px;
+    }
+    .wb-duty-status.on  { color: #4ade80; }
+    .wb-duty-status.off { color: var(--muted); }
+
+    .wb-crew-list { display: flex; flex-direction: column; gap: 10px; flex: 1; }
+
+    .wb-crew-member {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 14px;
+      background: rgba(255,255,255,.05);
+      border-radius: 10px;
+    }
+    .wb-crew-dot  { width: 10px; height: 10px; border-radius: 50%; background: #4ade80; flex-shrink: 0; }
+    .wb-crew-name { font-size: clamp(16px, 2vw, 22px); font-weight: 600; }
+    .wb-crew-role { font-size: 13px; color: var(--muted); margin-top: 1px; }
+
+    .wb-no-duty {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 8px;
+      color: var(--muted);
+    }
+    .wb-no-duty-icon { font-size: 40px; opacity: .4; }
+    .wb-no-duty-text { font-size: 18px; font-weight: 500; }
+
+    /* Stats panel */
+    .wb-stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      flex: 1;
+    }
+
+    .wb-stat {
+      background: rgba(255,255,255,.05);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex; flex-direction: column; justify-content: space-between;
+    }
+    .wb-stat-label  { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+    .wb-stat-value  { font-size: clamp(32px, 4vw, 52px); font-weight: 800; line-height: 1; margin-top: 8px; color: var(--text); }
+    .wb-stat-sub    { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .wb-stat.accent .wb-stat-value { color: #60a5fa; }
+
+    /* Footer */
+    .wb-footer {
+      background: #0f172a; border-top: 1px solid var(--border);
+      padding: 8px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-shrink: 0;
+    }
+    .wb-mileage { font-size: 14px; color: var(--muted); }
+    .wb-mileage strong { color: var(--text); }
+    .wb-refresh-time { font-size: 12px; color: #475569; }
+
+    @media (max-width: 900px) {
+      .wb-compliance-row { grid-template-columns: repeat(3, 1fr); }
+      .wb-info-row        { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -234,34 +211,48 @@
   <!-- Dashboard -->
   <div id="dashboard" class="hidden">
     <div class="wb-header">
-      <div class="wb-logo"><span class="wb-callsign" id="wb-callsign">RC0681</span> Eccleshall CFR</div>
+      <div class="wb-logo">
+        <span class="wb-callsign" id="wb-callsign">RC0681</span> Eccleshall CFR
+      </div>
       <div style="text-align:right;">
         <div class="wb-clock" id="wb-clock">00:00</div>
-        <div class="wb-date" id="wb-date"></div>
+        <div class="wb-date-line" id="wb-date"></div>
       </div>
     </div>
 
-    <div class="wb-grid" id="wb-grid">
-      <!-- Cards injected by JS -->
+    <div class="wb-main">
+      <!-- Compliance cards -->
+      <div class="wb-compliance-row" id="wb-compliance"></div>
+
+      <!-- Duty + Stats -->
+      <div class="wb-info-row">
+        <div class="wb-panel" id="wb-duty-panel">
+          <div class="wb-panel-title">On Duty Now</div>
+          <div id="wb-duty-content"></div>
+        </div>
+        <div class="wb-panel" id="wb-stats-panel">
+          <div class="wb-panel-title">Incident Statistics</div>
+          <div class="wb-stats-grid" id="wb-stats-content"></div>
+        </div>
+      </div>
     </div>
 
     <div class="wb-footer">
       <div class="wb-mileage" id="wb-mileage"></div>
-      <div class="wb-refresh" id="wb-refresh-time"></div>
+      <div class="wb-refresh-time" id="wb-refresh-time"></div>
     </div>
   </div>
 
   <script>
-    const PIN_KEY     = 'wb_pin';
-    const REFRESH_MS  = 5 * 60 * 1000; // 5 minutes
-    const DOW         = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-    const MONTHS      = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-    const SHORT_MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const PIN_KEY    = 'wb_pin';
+    const REFRESH_MS = 5 * 60 * 1000;
+    const DOW        = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTHS     = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const SHORT_MON  = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
     let _refreshTimer = null;
 
-    // ── Clock ───────────────────────────────────────────────────────────────
-
+    // ── Clock ────────────────────────────────────────────────────────────────
     function tickClock() {
       const now = new Date();
       const hh  = String(now.getHours()).padStart(2, '0');
@@ -270,12 +261,10 @@
       document.getElementById('wb-date').textContent  =
         `${DOW[now.getDay()]} ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
     }
-
     setInterval(tickClock, 1000);
     tickClock();
 
-    // ── PIN auth ────────────────────────────────────────────────────────────
-
+    // ── PIN ──────────────────────────────────────────────────────────────────
     document.getElementById('pin-input').addEventListener('keydown', e => {
       if (e.key === 'Enter') submitPin();
     });
@@ -284,7 +273,6 @@
       const pin = document.getElementById('pin-input').value.trim();
       if (!pin) return;
       document.getElementById('pin-error').textContent = '';
-
       try {
         const data = await fetchWallboard(pin);
         localStorage.setItem(PIN_KEY, pin);
@@ -302,177 +290,199 @@
       return body;
     }
 
-    // ── RAG helpers ─────────────────────────────────────────────────────────
-
-    function daysUntil(isoDate) {
-      if (!isoDate) return null;
-      const diff = new Date(isoDate) - new Date(new Date().toDateString());
-      return Math.ceil(diff / 86400000);
+    // ── Helpers ──────────────────────────────────────────────────────────────
+    function daysUntil(iso) {
+      if (!iso) return null;
+      return Math.ceil((new Date(iso) - new Date(new Date().toDateString())) / 86400000);
     }
 
-    function addMonths(isoDate, months) {
-      const d = new Date(isoDate);
-      d.setMonth(d.getMonth() + months);
+    function addMonths(iso, n) {
+      const d = new Date(iso); d.setMonth(d.getMonth() + n);
       return d.toISOString().slice(0, 10);
     }
 
     function fmtDate(iso) {
       if (!iso) return '—';
       const [y, m, d] = iso.split('-');
-      return `${d} ${SHORT_MONTH[parseInt(m) - 1]} ${y}`;
+      return `${d} ${SHORT_MON[parseInt(m) - 1]} ${y}`;
     }
 
-    function ragFromDays(days, warnDays) {
+    function ragFromDays(days, warn) {
       if (days === null) return 'grey';
-      if (days < 0)         return 'red';
-      if (days <= warnDays) return 'amber';
+      if (days < 0)      return 'red';
+      if (days <= warn)  return 'amber';
       return 'green';
     }
 
-    function statusLabel(days) {
-      if (days === null) return '—';
-      if (days < 0)  return 'OVERDUE';
-      if (days === 0) return 'TODAY';
-      if (days === 1) return '1 day';
-      return `${days} days`;
+    // ── Compliance cards ─────────────────────────────────────────────────────
+    function card(label, rag, status, detail, sub) {
+      return `<div class="wb-card ${rag}">
+        <div class="wb-card-label">${label}</div>
+        <div class="wb-card-status">${status}</div>
+        <div>
+          <div class="wb-card-detail">${detail}</div>
+          ${sub ? `<div class="wb-card-sub">${sub}</div>` : ''}
+        </div>
+      </div>`;
     }
 
-    // ── Cards ────────────────────────────────────────────────────────────────
+    function renderCompliance(maintenance, dvla, lastMaint, currentMileage) {
+      const parts = [];
 
-    function buildCard(label, rag, statusText, detail, sub) {
-      return `
-        <div class="wb-card ${rag}">
-          <div class="wb-card-label">${label}</div>
-          <div class="wb-card-status">${statusText}</div>
-          <div>
-            <div class="wb-card-detail">${detail}</div>
-            ${sub ? `<div class="wb-card-sub">${sub}</div>` : ''}
-          </div>
+      // MOT — DVLA preferred
+      const motExpiry = dvla?.mot_expiry || maintenance.mot?.next_due || null;
+      const motDays   = daysUntil(motExpiry);
+      const motRag    = ragFromDays(motDays, maintenance.mot?.warn_days || 30);
+      parts.push(card('MOT',
+        motRag,
+        motDays === null ? '—' : motDays < 0 ? 'OVERDUE' : motDays === 0 ? 'TODAY' : `${motDays}d`,
+        motExpiry ? `Expires ${fmtDate(motExpiry)}` : 'No date set',
+        dvla?.mot_expiry ? '<span class="wb-dvla-badge">● Live DVLA</span>' : ''
+      ));
+
+      // Road Tax — DVLA
+      if (dvla?.tax_due || dvla?.tax_status) {
+        const taxDays = daysUntil(dvla.tax_due);
+        const taxRag  = dvla.tax_status === 'Untaxed' ? 'red' : ragFromDays(taxDays, 30);
+        parts.push(card('Road Tax',
+          taxRag,
+          dvla.tax_status === 'Untaxed' ? 'UNTAXED' : taxDays === null ? '—' : taxDays < 0 ? 'OVERDUE' : `${taxDays}d`,
+          dvla.tax_due ? `Due ${fmtDate(dvla.tax_due)}` : dvla.tax_status || '—',
+          '<span class="wb-dvla-badge">● Live DVLA</span>'
+        ));
+      } else {
+        parts.push(card('Road Tax', 'grey', '—', 'No DVLA data', ''));
+      }
+
+      // Service — mileage or date, whichever sooner
+      const s = maintenance.service || {};
+      const intervalMiles  = s.interval_miles  || 10000;
+      const intervalMonths = s.interval_months || 12;
+      const ls = lastMaint.service;
+      const milesRemaining = (ls?.mileage != null && currentMileage != null)
+        ? (ls.mileage + intervalMiles) - currentMileage : null;
+      const svcDueDate = ls?.done_at ? addMonths(ls.done_at, intervalMonths) : null;
+      const svcDays    = daysUntil(svcDueDate);
+      const warnMiles  = Math.round(intervalMiles * 0.1);
+      const milesRag   = milesRemaining === null ? 'grey'
+        : milesRemaining < 0   ? 'red'
+        : milesRemaining <= warnMiles ? 'amber' : 'green';
+      const dateRag    = ragFromDays(svcDays, s.warn_days || 14);
+      const ragOrder   = { red: 0, amber: 1, green: 2, grey: 3 };
+      const svcRag     = ragOrder[milesRag] <= ragOrder[dateRag] ? milesRag : dateRag;
+      const svcStatus  = milesRemaining !== null && milesRemaining < 0 ? 'OVERDUE'
+        : svcDays !== null && svcDays < 0 ? 'OVERDUE'
+        : milesRemaining !== null ? `${milesRemaining.toLocaleString()}mi`
+        : svcDays !== null ? `${svcDays}d` : '—';
+      const svcDetail  = milesRemaining !== null
+        ? `${milesRemaining.toLocaleString()} mi remaining`
+        : ls ? 'No mileage recorded' : 'No service recorded';
+      const svcSub     = svcDueDate ? `Date due ${fmtDate(svcDueDate)}` : '';
+      parts.push(card('Service', svcRag, svcStatus, svcDetail, svcSub));
+
+      // Insurance
+      const ins     = maintenance.insurance || {};
+      const insDays = daysUntil(ins.next_due);
+      parts.push(card('Insurance',
+        ragFromDays(insDays, ins.warn_days || 30),
+        insDays === null ? '—' : insDays < 0 ? 'OVERDUE' : `${insDays}d`,
+        ins.next_due ? `Expires ${fmtDate(ins.next_due)}` : 'No date set',
+        ''
+      ));
+
+      // Deep Clean
+      const dc = maintenance.deep_clean || {};
+      const lc = lastMaint.deep_clean;
+      let cleanDue = null;
+      if (lc?.done_at) {
+        const d = new Date(lc.done_at);
+        d.setDate(d.getDate() + (dc.interval_days || 60));
+        cleanDue = d.toISOString().slice(0, 10);
+      }
+      const cleanDays = daysUntil(cleanDue);
+      parts.push(card('Deep Clean',
+        ragFromDays(cleanDays, dc.warn_days || 7),
+        cleanDays === null ? '—' : cleanDays < 0 ? 'OVERDUE' : cleanDays === 0 ? 'TODAY' : `${cleanDays}d`,
+        cleanDue ? `Due ${fmtDate(cleanDue)}` : 'No clean recorded',
+        lc?.done_at ? `Last ${fmtDate(lc.done_at)}` : ''
+      ));
+
+      document.getElementById('wb-compliance').innerHTML = parts.join('');
+    }
+
+    // ── Duty panel ───────────────────────────────────────────────────────────
+    function renderDuty(duty) {
+      const el = document.getElementById('wb-duty-content');
+      if (!duty?.active || !duty.crew?.length) {
+        el.innerHTML = `
+          <div class="wb-no-duty">
+            <div class="wb-no-duty-icon">🚗</div>
+            <div class="wb-no-duty-text">No crew on duty</div>
+          </div>`;
+        return;
+      }
+
+      const timeStr = duty.started_at ? ` · On since ${duty.started_at.slice(0,5)}` : '';
+      el.innerHTML = `
+        <div class="wb-duty-status on">● On Duty${timeStr}</div>
+        <div class="wb-crew-list">
+          ${duty.crew.map(c => `
+            <div class="wb-crew-member">
+              <div class="wb-crew-dot"></div>
+              <div>
+                <div class="wb-crew-name">${c.name}</div>
+                ${c.role ? `<div class="wb-crew-role">${c.role}</div>` : ''}
+              </div>
+            </div>`).join('')}
         </div>`;
     }
 
-    function renderMOT(maint, dvla) {
-      const warnDays = maint.mot?.warn_days || 30;
-      // Prefer DVLA live data
-      const expiry = dvla?.mot_expiry || maint.mot?.next_due || null;
-      const days   = daysUntil(expiry);
-      const rag    = ragFromDays(days, warnDays);
-      const status = days === null ? '—' : days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`;
-      const detail = expiry ? `Expires ${fmtDate(expiry)}` : 'No date recorded';
-      const badge  = dvla?.mot_expiry ? '<div class="wb-dvla-badge">● Live DVLA</div>' : '';
-      return buildCard('MOT', rag, status, detail, badge);
-    }
-
-    function renderTax(dvla, maint) {
-      // Road tax from DVLA; fall back gracefully if no DVLA data
-      if (!dvla?.tax_due && !dvla?.tax_status) {
-        return buildCard('Road Tax', 'grey', '—', 'No DVLA data', '');
-      }
-      const days   = daysUntil(dvla.tax_due);
-      const rag    = dvla.tax_status === 'Untaxed' ? 'red' : ragFromDays(days, 30);
-      const status = dvla.tax_status === 'Untaxed' ? 'UNTAXED'
-        : days === null ? '—' : days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`;
-      const detail = dvla.tax_due ? `Due ${fmtDate(dvla.tax_due)}` : dvla.tax_status || '—';
-      return buildCard('Road Tax', rag, status, detail, '<div class="wb-dvla-badge">● Live DVLA</div>');
-    }
-
-    function renderService(maint, currentMileage, lastService) {
-      const s = maint.service || {};
-      const intervalMiles  = s.interval_miles  || 10000;
-      const intervalMonths = s.interval_months || 12;
-      const warnDays       = s.warn_days || 14;
-
-      let dueMileage = null, dueDate = null, milesDue = null, daysDue = null;
-
-      if (lastService) {
-        if (lastService.mileage != null) {
-          dueMileage = lastService.mileage + intervalMiles;
-        }
-        if (lastService.done_at) {
-          dueDate = addMonths(lastService.done_at, intervalMonths);
-        }
-      }
-
-      const milesRemaining = (dueMileage != null && currentMileage != null)
-        ? dueMileage - currentMileage : null;
-      daysDue = daysUntil(dueDate);
-
-      // Whichever trigger is sooner
-      let rag = 'grey', statusText = '—', detail = '', sub = '';
-
-      const warnMiles = intervalMiles * 0.1; // warn at 10% of interval remaining
-
-      if (milesRemaining !== null || daysDue !== null) {
-        const milesRag = milesRemaining !== null
-          ? (milesRemaining < 0 ? 'red' : milesRemaining <= warnMiles ? 'amber' : 'green')
-          : 'grey';
-        const dateRag  = ragFromDays(daysDue, warnDays);
-
-        const ragOrder = { red: 0, amber: 1, green: 2, grey: 3 };
-        rag = ragOrder[milesRag] <= ragOrder[dateRag] ? milesRag : dateRag;
-
-        const parts = [];
-        if (milesRemaining !== null) {
-          parts.push(milesRemaining < 0
-            ? `${Math.abs(milesRemaining).toLocaleString()} mi overdue`
-            : `${milesRemaining.toLocaleString()} mi remaining`);
-        }
-        if (daysDue !== null) {
-          parts.push(daysDue < 0 ? `${Math.abs(daysDue)}d overdue by date` : `${daysDue}d by date`);
-        }
-
-        if (milesRemaining !== null && milesRemaining < 0) {
-          statusText = 'OVERDUE';
-        } else if (daysDue !== null && daysDue < 0) {
-          statusText = 'OVERDUE';
-        } else if (milesRemaining !== null) {
-          statusText = `${milesRemaining.toLocaleString()}mi`;
-        } else {
-          statusText = `${daysDue}d`;
-        }
-
-        detail = parts[0] || '—';
-        sub    = parts[1] || '';
-
-        if (dueDate && milesRemaining !== null) sub = (sub ? sub + ' · ' : '') + `Date due ${fmtDate(dueDate)}`;
-        else if (dueDate) detail = `Due ${fmtDate(dueDate)}`;
-      } else {
-        detail = 'No service recorded';
-      }
-
-      return buildCard('Service', rag, statusText, detail, sub);
-    }
-
-    function renderInsurance(maint) {
-      const m    = maint.insurance || {};
-      const days = daysUntil(m.next_due);
-      const rag  = ragFromDays(days, m.warn_days || 30);
-      const status = days === null ? '—' : (days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`);
-      const detail = m.next_due ? `Expires ${fmtDate(m.next_due)}` : 'No date set';
-      return buildCard('Insurance', rag, status, detail, '');
-    }
-
-    function renderDeepClean(maint, lastClean) {
-      const dc = maint.deep_clean || {};
-      const intervalDays = dc.interval_days || 60;
-      const warnDays     = dc.warn_days || 7;
-
-      let dueDate = null;
-      if (lastClean?.done_at) {
-        const d = new Date(lastClean.done_at);
-        d.setDate(d.getDate() + intervalDays);
-        dueDate = d.toISOString().slice(0, 10);
-      }
-
-      const days   = daysUntil(dueDate);
-      const rag    = ragFromDays(days, warnDays);
-      const status = days === null ? '—' : (days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`);
-      const detail = dueDate ? `Due ${fmtDate(dueDate)}` : 'No clean recorded';
-      const sub    = lastClean?.done_at ? `Last ${fmtDate(lastClean.done_at)}` : '';
-      return buildCard('Deep Clean', rag, status, detail, sub);
+    // ── Stats panel ──────────────────────────────────────────────────────────
+    function renderStats(stats) {
+      const el = document.getElementById('wb-stats-content');
+      el.innerHTML = `
+        <div class="wb-stat accent">
+          <div class="wb-stat-label">Today</div>
+          <div class="wb-stat-value">${stats.incToday}</div>
+          <div class="wb-stat-sub">incidents</div>
+        </div>
+        <div class="wb-stat">
+          <div class="wb-stat-label">This Month</div>
+          <div class="wb-stat-value">${stats.incMonth}</div>
+          <div class="wb-stat-sub">incidents</div>
+        </div>
+        <div class="wb-stat">
+          <div class="wb-stat-label">This Year</div>
+          <div class="wb-stat-value">${stats.incYear}</div>
+          <div class="wb-stat-sub">incidents</div>
+        </div>
+        <div class="wb-stat">
+          <div class="wb-stat-label">Duty Hours</div>
+          <div class="wb-stat-value">${stats.hoursThisMonth}</div>
+          <div class="wb-stat-sub">this month</div>
+        </div>`;
     }
 
     // ── Render ───────────────────────────────────────────────────────────────
+    function renderData(data) {
+      const { callsign, maintenance, current_mileage, current_mileage_date,
+              last_maintenance, dvla, duty, stats } = data;
+
+      document.getElementById('wb-callsign').textContent = callsign;
+
+      renderCompliance(maintenance, dvla, last_maintenance, current_mileage);
+      renderDuty(duty);
+      renderStats(stats);
+
+      const mileageEl = document.getElementById('wb-mileage');
+      mileageEl.innerHTML = current_mileage != null
+        ? `Current mileage: <strong>${current_mileage.toLocaleString()}</strong>${current_mileage_date ? ` · Last VDI ${fmtDate(current_mileage_date)}` : ''}`
+        : 'No mileage on record';
+
+      const now = new Date();
+      document.getElementById('wb-refresh-time').textContent =
+        `Updated ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    }
 
     function showDashboard(data) {
       document.getElementById('pin-screen').classList.add('hidden');
@@ -483,51 +493,18 @@
       _refreshTimer = setInterval(async () => {
         try {
           const pin  = localStorage.getItem(PIN_KEY);
-          const data = await fetchWallboard(pin);
-          renderData(data);
+          renderData(await fetchWallboard(pin));
         } catch { /* keep showing last data */ }
       }, REFRESH_MS);
     }
 
-    function renderData(data) {
-      const { callsign, maintenance, current_mileage, current_mileage_date, last_maintenance, dvla } = data;
-
-      document.getElementById('wb-callsign').textContent = callsign;
-
-      const grid = document.getElementById('wb-grid');
-      grid.innerHTML =
-        renderMOT(maintenance, dvla) +
-        renderTax(dvla, maintenance) +
-        renderService(maintenance, current_mileage, last_maintenance.service) +
-        renderInsurance(maintenance) +
-        renderDeepClean(maintenance, last_maintenance.deep_clean);
-
-      const mileageEl = document.getElementById('wb-mileage');
-      if (current_mileage != null) {
-        mileageEl.innerHTML = `Current mileage: <strong>${current_mileage.toLocaleString()}</strong>${current_mileage_date ? ` &nbsp;·&nbsp; Last VDI ${fmtDate(current_mileage_date)}` : ''}`;
-      } else {
-        mileageEl.textContent = 'No mileage recorded';
-      }
-
-      const now = new Date();
-      document.getElementById('wb-refresh-time').textContent =
-        `Updated ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
-    }
-
     // ── Init ─────────────────────────────────────────────────────────────────
-
     (async () => {
       const saved = localStorage.getItem(PIN_KEY);
       if (saved) {
-        try {
-          const data = await fetchWallboard(saved);
-          showDashboard(data);
-          return;
-        } catch {
-          localStorage.removeItem(PIN_KEY);
-        }
+        try { showDashboard(await fetchWallboard(saved)); return; }
+        catch { localStorage.removeItem(PIN_KEY); }
       }
-      // Show PIN screen
     })();
   </script>
 </body>
