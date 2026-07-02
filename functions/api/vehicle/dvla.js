@@ -14,11 +14,11 @@ async function fetchDVLA(vrm, apiKey) {
   return res.json();
 }
 
-export async function getCachedDVLA(env) {
+async function getCachedDVLA(env) {
   return env.CFR_DATA.get(CACHE_KEY, { type: 'json' });
 }
 
-export async function refreshDVLACache(env) {
+async function refreshDVLACache(env) {
   const config = await env.CFR_DATA.get('config:vehicle', { type: 'json' }) || {};
   const vrm    = config.vrm;
   const apiKey = env.DVLA_API_KEY;
