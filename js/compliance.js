@@ -26,14 +26,16 @@ async function loadOverview() {
   content.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
 
   try {
-    const [stats, vdiData, monthlyData] = await Promise.all([
+    const [stats, vdiData, monthlyData, dvlaData] = await Promise.all([
       CFR.apiGet('/api/stats'),
       CFR.apiGet('/api/vehicle-inspection?limit=1'),
       CFR.apiGet('/api/monthly-check?limit=1'),
+      CFR.apiGet('/api/vehicle/dvla').catch(() => ({ dvla: null })),
     ]);
 
     const lastVDI     = vdiData.items?.[0];
     const lastMonthly = monthlyData.items?.[0];
+    const dvla        = dvlaData.dvla || null;
 
     const now      = new Date();
     const daysSinceVDI = lastVDI
@@ -90,6 +92,42 @@ async function loadOverview() {
 
       <p class="section-heading">Open Defects</p>
       <div id="overview-defects-preview"></div>
+
+      <p class="section-heading">Vehicle (DVLA Live)</p>
+      ${dvla ? (() => {
+        const motDays  = dvla.mot_expiry ? Math.ceil((new Date(dvla.mot_expiry) - new Date(new Date().toDateString())) / 86400000) : null;
+        const taxDays  = dvla.tax_due    ? Math.ceil((new Date(dvla.tax_due)    - new Date(new Date().toDateString())) / 86400000) : null;
+        const motRag   = motDays === null ? 'red' : motDays < 0 ? 'red' : motDays <= 30 ? 'amber' : 'green';
+        const taxRag   = dvla.tax_status === 'Untaxed' ? 'red' : taxDays === null ? 'red' : taxDays < 0 ? 'red' : taxDays <= 30 ? 'amber' : 'green';
+        const fmtD     = iso => { if (!iso) return '—'; const [y,m,d] = iso.split('-'); return `${d}/${m}/${y}`; };
+        return `
+          <div class="card">
+            <div class="sub-item">
+              <div class="sub-item-icon" style="font-size:20px;">🔧</div>
+              <div class="sub-item-body">
+                <div class="sub-item-title flex items-center gap-2">
+                  <span class="rag rag-${motRag}"></span> MOT
+                </div>
+                <div class="sub-item-meta">
+                  ${dvla.mot_expiry ? `Expires ${fmtD(dvla.mot_expiry)} · ${dvla.mot_status || ''}` : 'No data'}&nbsp;
+                  <span style="color:var(--text-muted); font-size:11px;">● Live DVLA</span>
+                </div>
+              </div>
+            </div>
+            <div class="sub-item">
+              <div class="sub-item-icon" style="font-size:20px;">💷</div>
+              <div class="sub-item-body">
+                <div class="sub-item-title flex items-center gap-2">
+                  <span class="rag rag-${taxRag}"></span> Road Tax
+                </div>
+                <div class="sub-item-meta">
+                  ${dvla.tax_due ? `Due ${fmtD(dvla.tax_due)} · ${dvla.tax_status || ''}` : (dvla.tax_status || 'No data')}&nbsp;
+                  <span style="color:var(--text-muted); font-size:11px;">● Live DVLA</span>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      })() : '<div class="card text-sm text-muted" style="padding:12px;">DVLA data unavailable — add VRM in Admin → Vehicle.</div>'}
 
       <p class="section-heading">Expiry Alerts</p>
       <div id="overview-expiry-preview"></div>`;

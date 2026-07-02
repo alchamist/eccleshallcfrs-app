@@ -135,7 +135,7 @@
 
     .wb-grid {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 16px;
       padding: 16px;
       flex: 1;
@@ -205,8 +205,17 @@
       color: #475569;
     }
 
-    @media (max-width: 700px) {
-      .wb-grid { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    .wb-dvla-badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      opacity: 0.5;
+      margin-top: 4px;
+    }
+
+    @media (max-width: 800px) {
+      .wb-grid { grid-template-columns: 1fr 1fr 1fr; }
     }
   </style>
 </head>
@@ -342,13 +351,29 @@
         </div>`;
     }
 
-    function renderMOT(maint) {
-      const m    = maint.mot || {};
-      const days = daysUntil(m.next_due);
-      const rag  = ragFromDays(days, m.warn_days || 30);
-      const status = days === null ? '—' : (days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`);
-      const detail = m.next_due ? `Due ${fmtDate(m.next_due)}` : 'No date set';
-      return buildCard('MOT', rag, status, detail, days !== null && days >= 0 ? `${days} day${days !== 1 ? 's' : ''} remaining` : '');
+    function renderMOT(maint, dvla) {
+      const warnDays = maint.mot?.warn_days || 30;
+      // Prefer DVLA live data
+      const expiry = dvla?.mot_expiry || maint.mot?.next_due || null;
+      const days   = daysUntil(expiry);
+      const rag    = ragFromDays(days, warnDays);
+      const status = days === null ? '—' : days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`;
+      const detail = expiry ? `Expires ${fmtDate(expiry)}` : 'No date recorded';
+      const badge  = dvla?.mot_expiry ? '<div class="wb-dvla-badge">● Live DVLA</div>' : '';
+      return buildCard('MOT', rag, status, detail, badge);
+    }
+
+    function renderTax(dvla, maint) {
+      // Road tax from DVLA; fall back gracefully if no DVLA data
+      if (!dvla?.tax_due && !dvla?.tax_status) {
+        return buildCard('Road Tax', 'grey', '—', 'No DVLA data', '');
+      }
+      const days   = daysUntil(dvla.tax_due);
+      const rag    = dvla.tax_status === 'Untaxed' ? 'red' : ragFromDays(days, 30);
+      const status = dvla.tax_status === 'Untaxed' ? 'UNTAXED'
+        : days === null ? '—' : days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`;
+      const detail = dvla.tax_due ? `Due ${fmtDate(dvla.tax_due)}` : dvla.tax_status || '—';
+      return buildCard('Road Tax', rag, status, detail, '<div class="wb-dvla-badge">● Live DVLA</div>');
     }
 
     function renderService(maint, currentMileage, lastService) {
@@ -465,13 +490,14 @@
     }
 
     function renderData(data) {
-      const { callsign, maintenance, current_mileage, current_mileage_date, last_maintenance } = data;
+      const { callsign, maintenance, current_mileage, current_mileage_date, last_maintenance, dvla } = data;
 
       document.getElementById('wb-callsign').textContent = callsign;
 
       const grid = document.getElementById('wb-grid');
       grid.innerHTML =
-        renderMOT(maintenance) +
+        renderMOT(maintenance, dvla) +
+        renderTax(dvla, maintenance) +
         renderService(maintenance, current_mileage, last_maintenance.service) +
         renderInsurance(maintenance) +
         renderDeepClean(maintenance, last_maintenance.deep_clean);

@@ -1,3 +1,34 @@
+const DVLA_CACHE_KEY = 'dvla_cache';
+const DVLA_TTL       = 23 * 60 * 60 * 1000;
+
+async function getDVLAData(env, config) {
+  let cache = await env.CFR_DATA.get(DVLA_CACHE_KEY, { type: 'json' });
+  const stale = !cache?.fetched_at || Date.now() - new Date(cache.fetched_at).getTime() > DVLA_TTL;
+
+  if (stale && env.DVLA_API_KEY && config.vrm) {
+    try {
+      const res = await fetch('https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles', {
+        method:  'POST',
+        headers: { 'x-api-key': env.DVLA_API_KEY, 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ registrationNumber: config.vrm.replace(/\s+/g, '').toUpperCase() }),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        cache = {
+          vrm:        config.vrm.toUpperCase(),
+          fetched_at: new Date().toISOString(),
+          mot_expiry: d.motExpiryDate    || null,
+          mot_status: d.motStatus        || null,
+          tax_due:    d.taxDueDate       || null,
+          tax_status: d.taxStatus        || null,
+        };
+        await env.CFR_DATA.put(DVLA_CACHE_KEY, JSON.stringify(cache));
+      }
+    } catch { /* keep stale cache */ }
+  }
+  return cache || null;
+}
+
 export async function onRequestGet({ env, request }) {
   const url = new URL(request.url);
   const pin = url.searchParams.get('pin');
@@ -37,11 +68,14 @@ export async function onRequestGet({ env, request }) {
     deep_clean: { interval_days: 60, warn_days: 7 },
   };
 
+  const dvla = await getDVLAData(env, config);
+
   return Response.json({
     callsign:             config.callsign || 'RC0681',
     maintenance:          { ...DEFAULT_MAINT, ...(config.maintenance || {}) },
     current_mileage:      latestVDI?.starting_mileage ?? null,
     current_mileage_date: latestVDI?.date ?? null,
     last_maintenance:     lastMaint,
+    dvla,
   });
 }

@@ -1,5 +1,6 @@
 const DEFAULT = {
   callsign:      'RC0681',
+  vrm:           null,
   tread_warn_mm: 3.0,
   wallboard_pin: null,
   maintenance: {

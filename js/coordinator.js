@@ -608,6 +608,7 @@ async function loadVehicleSettings() {
   try {
     const { config } = await CFR.apiGet('/api/config/vehicle');
     document.getElementById('cfg-callsign').value      = config.callsign || '';
+    document.getElementById('cfg-vrm').value           = config.vrm || '';
     document.getElementById('cfg-tread').value         = config.tread_warn_mm || 3;
     document.getElementById('cfg-wallboard-pin').value = config.wallboard_pin || '';
     const m = config.maintenance || {};
@@ -623,20 +624,67 @@ async function loadVehicleSettings() {
   } catch (e) { CFR.toast(e.message, 'error'); }
   document.getElementById('maint-log-date').value = CFR.todayISO();
   loadMaintenanceHistory();
+  loadDVLAStatus();
 }
 
 async function saveVehicleSettings() {
-  const callsign     = document.getElementById('cfg-callsign').value.trim();
-  const tread        = parseFloat(document.getElementById('cfg-tread').value);
+  const callsign      = document.getElementById('cfg-callsign').value.trim();
+  const vrm           = document.getElementById('cfg-vrm').value.trim().replace(/\s+/g, '').toUpperCase() || null;
+  const tread         = parseFloat(document.getElementById('cfg-tread').value);
   const wallboard_pin = document.getElementById('cfg-wallboard-pin').value.trim() || null;
   if (!callsign) { CFR.toast('Call sign is required.', 'warning'); return; }
   if (isNaN(tread) || tread < 1.6) { CFR.toast('Tread threshold must be at least 1.6mm.', 'warning'); return; }
   try {
-    const { config } = await CFR.apiPatch('/api/config/vehicle', { callsign, tread_warn_mm: tread, wallboard_pin });
+    const { config } = await CFR.apiPatch('/api/config/vehicle', { callsign, vrm, tread_warn_mm: tread, wallboard_pin });
     localStorage.setItem('cfr_vehicle_config', JSON.stringify(config));
     CFR.toast('Settings saved.', 'success');
     document.querySelectorAll('.callsign').forEach(el => { el.textContent = callsign; });
   } catch (e) { CFR.toast(e.message, 'error'); }
+}
+
+async function loadDVLAStatus() {
+  const el = document.getElementById('dvla-status');
+  if (!el) return;
+  try {
+    const { dvla } = await CFR.apiGet('/api/vehicle/dvla');
+    if (!dvla) {
+      el.innerHTML = '<p class="text-sm text-muted" style="padding:4px 0;">No data yet — add VRM above and save, then click Refresh.</p>';
+      return;
+    }
+    const fmtD = iso => iso ? CFR.fmtDate(iso) : '—';
+    const ago  = iso => {
+      if (!iso) return '';
+      const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+      if (mins < 60)  return `${mins}m ago`;
+      if (mins < 1440) return `${Math.round(mins/60)}h ago`;
+      return `${Math.round(mins/1440)}d ago`;
+    };
+    el.innerHTML = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; font-size:14px;">
+        <div><span class="text-muted">MOT expiry:</span> <strong>${fmtD(dvla.mot_expiry)}</strong></div>
+        <div><span class="text-muted">MOT status:</span> <strong>${dvla.mot_status || '—'}</strong></div>
+        <div><span class="text-muted">Road tax due:</span> <strong>${fmtD(dvla.tax_due)}</strong></div>
+        <div><span class="text-muted">Tax status:</span> <strong>${dvla.tax_status || '—'}</strong></div>
+        ${dvla.make ? `<div><span class="text-muted">Vehicle:</span> <strong>${dvla.make}${dvla.colour ? ' · ' + dvla.colour : ''}</strong></div>` : ''}
+        ${dvla.year ? `<div><span class="text-muted">Year:</span> <strong>${dvla.year}</strong></div>` : ''}
+      </div>
+      <p class="text-sm text-muted" style="margin-top:8px;">Last fetched from DVLA: ${ago(dvla.fetched_at)}</p>`;
+  } catch (e) {
+    el.innerHTML = `<div class="alert alert-danger" style="margin:0;"><span>⚠</span> ${e.message}</div>`;
+  }
+}
+
+async function refreshDVLA() {
+  const el = document.getElementById('dvla-status');
+  if (el) el.innerHTML = '<div class="loading"><div class="spinner"></div>Fetching from DVLA…</div>';
+  try {
+    await CFR.apiPost('/api/vehicle/dvla', {});
+    CFR.toast('DVLA data refreshed.', 'success');
+    loadDVLAStatus();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+    loadDVLAStatus();
+  }
 }
 
 async function saveMaintenanceSettings() {

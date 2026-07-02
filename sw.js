@@ -1,5 +1,5 @@
 // Bump this string on every deploy to evict stale caches from users' devices.
-const CACHE = 'cfr-v9';
+const CACHE = 'cfr-v10';
 
 const STATIC = [
   '/index.html',
