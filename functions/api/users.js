@@ -77,7 +77,7 @@ export async function onRequestPost({ request, env, data }) {
     access_key,
     name:        name.trim(),
     prf_number:  (prf_number || '').trim(),
-    roles:       roles.filter(r => ['responder','coordinator','compliance'].includes(r)),
+    roles:       roles.filter(r => ['responder','coordinator','compliance','fire_safety_officer'].includes(r)),
     active:      true,
     pin_hash,
     pin_salt,
@@ -85,11 +85,13 @@ export async function onRequestPost({ request, env, data }) {
     created_by:  data.user.id,
   };
 
-  await env.CFR_USERS.put(`user:${access_key}`, JSON.stringify(user));
+  const ops = [env.CFR_USERS.put(`user:${access_key}`, JSON.stringify(user))];
+  if (user.prf_number) ops.push(env.CFR_USERS.put(`prf:${user.prf_number}`, access_key));
 
   const index = await env.CFR_USERS.get('users:index', { type: 'json' }) || [];
   index.push(access_key);
-  await env.CFR_USERS.put('users:index', JSON.stringify(index));
+  ops.push(env.CFR_USERS.put('users:index', JSON.stringify(index)));
+  await Promise.all(ops);
 
   // Return PIN and access key once — neither is stored in retrievable form
   return Response.json({ access_key, pin, user }, { status: 201 });
@@ -117,11 +119,13 @@ export async function onRequestPatch({ request, env, data }) {
     const index    = await env.CFR_USERS.get('users:index', { type: 'json' }) || [];
     const newIndex = index.map(k => k === access_key ? newKey : k);
 
-    await Promise.all([
+    const ops = [
       env.CFR_USERS.put(`user:${newKey}`, JSON.stringify(updated)),
       env.CFR_USERS.put('users:index', JSON.stringify(newIndex)),
       env.CFR_USERS.delete(`user:${access_key}`),
-    ]);
+    ];
+    if (updated.prf_number) ops.push(env.CFR_USERS.put(`prf:${updated.prf_number}`, newKey));
+    await Promise.all(ops);
 
     return Response.json({ access_key: newKey, user: updated });
   }
@@ -135,6 +139,7 @@ export async function onRequestPatch({ request, env, data }) {
     return Response.json({ pin });
   }
 
+  const oldPrf = user.prf_number;
   if (active !== undefined)     user.active     = active;
   if (roles)                    user.roles      = roles;
   if (name)                     user.name       = name.trim();
@@ -142,6 +147,11 @@ export async function onRequestPatch({ request, env, data }) {
   user.updated_at = new Date().toISOString();
   user.updated_by = data.user.id;
 
-  await env.CFR_USERS.put(`user:${access_key}`, JSON.stringify(user));
+  const patchOps = [env.CFR_USERS.put(`user:${access_key}`, JSON.stringify(user))];
+  if (prf_number !== undefined && user.prf_number !== oldPrf) {
+    if (oldPrf)          patchOps.push(env.CFR_USERS.delete(`prf:${oldPrf}`));
+    if (user.prf_number) patchOps.push(env.CFR_USERS.put(`prf:${user.prf_number}`, access_key));
+  }
+  await Promise.all(patchOps);
   return Response.json({ user });
 }

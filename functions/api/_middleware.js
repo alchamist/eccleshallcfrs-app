@@ -3,7 +3,7 @@
 const PUBLIC = ['/api/auth', '/api/stats', '/api/device-pin'];
 
 // Routes that start with these prefixes are public
-const PUBLIC_PREFIXES = ['/api/status/'];
+const PUBLIC_PREFIXES = ['/api/status/', '/api/wallboard'];
 
 export async function onRequest(context) {
   const { request, env, next, data } = context;

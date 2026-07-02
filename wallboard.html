@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#1e3a5f">
+  <title>Compliance Status — Eccleshall CFR</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --green:  #166534;
+      --green-bg: #dcfce7;
+      --amber:  #92400e;
+      --amber-bg: #fef3c7;
+      --red:    #991b1b;
+      --red-bg: #fee2e2;
+      --grey:   #374151;
+      --grey-bg: #f3f4f6;
+      --navy:   #1e3a5f;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f172a;
+      color: #fff;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── PIN screen ─────────────────────────────────────────────────────────── */
+
+    #pin-screen {
+      position: fixed; inset: 0;
+      background: #0f172a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      z-index: 100;
+    }
+
+    #pin-screen.hidden { display: none; }
+
+    .pin-logo {
+      font-size: 22px;
+      font-weight: 700;
+      color: #94a3b8;
+      letter-spacing: 0.05em;
+    }
+
+    .pin-title {
+      font-size: 28px;
+      font-weight: 600;
+      color: #f1f5f9;
+    }
+
+    .pin-input {
+      font-size: 32px;
+      font-weight: 700;
+      text-align: center;
+      letter-spacing: 0.3em;
+      width: 200px;
+      padding: 12px 16px;
+      border: 2px solid #334155;
+      border-radius: 12px;
+      background: #1e293b;
+      color: #f1f5f9;
+      outline: none;
+    }
+
+    .pin-input:focus { border-color: #3b82f6; }
+
+    .pin-btn {
+      padding: 14px 48px;
+      font-size: 18px;
+      font-weight: 600;
+      background: #3b82f6;
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    .pin-btn:active { background: #2563eb; }
+
+    .pin-error {
+      color: #f87171;
+      font-size: 16px;
+      min-height: 24px;
+    }
+
+    /* ── Dashboard ──────────────────────────────────────────────────────────── */
+
+    #dashboard { display: flex; flex-direction: column; height: 100dvh; }
+    #dashboard.hidden { display: none; }
+
+    .wb-header {
+      background: var(--navy);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 28px;
+      flex-shrink: 0;
+    }
+
+    .wb-logo {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      color: #e2e8f0;
+    }
+
+    .wb-callsign {
+      color: #93c5fd;
+      margin-right: 8px;
+    }
+
+    .wb-clock {
+      font-size: 28px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: #e2e8f0;
+    }
+
+    .wb-date {
+      font-size: 14px;
+      color: #94a3b8;
+      text-align: right;
+      line-height: 1.2;
+    }
+
+    .wb-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      padding: 16px;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .wb-card {
+      border-radius: 16px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      min-height: 0;
+    }
+
+    .wb-card.green  { background: var(--green-bg);  color: var(--green);  }
+    .wb-card.amber  { background: var(--amber-bg);  color: var(--amber);  }
+    .wb-card.red    { background: var(--red-bg);    color: var(--red);    }
+    .wb-card.grey   { background: var(--grey-bg);   color: var(--grey);   }
+
+    .wb-card-label {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      opacity: 0.7;
+    }
+
+    .wb-card-status {
+      font-size: clamp(36px, 5vw, 56px);
+      font-weight: 800;
+      line-height: 1;
+      margin: 12px 0 8px;
+    }
+
+    .wb-card-detail {
+      font-size: clamp(13px, 1.4vw, 16px);
+      font-weight: 500;
+      line-height: 1.5;
+      opacity: 0.85;
+    }
+
+    .wb-card-sub {
+      font-size: clamp(11px, 1.2vw, 14px);
+      opacity: 0.65;
+      margin-top: 4px;
+    }
+
+    .wb-footer {
+      background: #1e293b;
+      padding: 10px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    .wb-mileage {
+      font-size: 15px;
+      color: #94a3b8;
+    }
+
+    .wb-mileage strong { color: #e2e8f0; }
+
+    .wb-refresh {
+      font-size: 12px;
+      color: #475569;
+    }
+
+    @media (max-width: 700px) {
+      .wb-grid { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- PIN Entry -->
+  <div id="pin-screen">
+    <div class="pin-logo">Eccleshall CFR</div>
+    <div class="pin-title">Compliance Wallboard</div>
+    <input id="pin-input" class="pin-input" type="password" inputmode="numeric"
+           maxlength="8" placeholder="····" autocomplete="off">
+    <button class="pin-btn" onclick="submitPin()">Unlock</button>
+    <div class="pin-error" id="pin-error"></div>
+  </div>
+
+  <!-- Dashboard -->
+  <div id="dashboard" class="hidden">
+    <div class="wb-header">
+      <div class="wb-logo"><span class="wb-callsign" id="wb-callsign">RC0681</span> Eccleshall CFR</div>
+      <div style="text-align:right;">
+        <div class="wb-clock" id="wb-clock">00:00</div>
+        <div class="wb-date" id="wb-date"></div>
+      </div>
+    </div>
+
+    <div class="wb-grid" id="wb-grid">
+      <!-- Cards injected by JS -->
+    </div>
+
+    <div class="wb-footer">
+      <div class="wb-mileage" id="wb-mileage"></div>
+      <div class="wb-refresh" id="wb-refresh-time"></div>
+    </div>
+  </div>
+
+  <script>
+    const PIN_KEY     = 'wb_pin';
+    const REFRESH_MS  = 5 * 60 * 1000; // 5 minutes
+    const DOW         = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const MONTHS      = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    const SHORT_MONTH = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+    let _refreshTimer = null;
+
+    // ── Clock ───────────────────────────────────────────────────────────────
+
+    function tickClock() {
+      const now = new Date();
+      const hh  = String(now.getHours()).padStart(2, '0');
+      const mm  = String(now.getMinutes()).padStart(2, '0');
+      document.getElementById('wb-clock').textContent = `${hh}:${mm}`;
+      document.getElementById('wb-date').textContent  =
+        `${DOW[now.getDay()]} ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+    }
+
+    setInterval(tickClock, 1000);
+    tickClock();
+
+    // ── PIN auth ────────────────────────────────────────────────────────────
+
+    document.getElementById('pin-input').addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitPin();
+    });
+
+    async function submitPin() {
+      const pin = document.getElementById('pin-input').value.trim();
+      if (!pin) return;
+      document.getElementById('pin-error').textContent = '';
+
+      try {
+        const data = await fetchWallboard(pin);
+        localStorage.setItem(PIN_KEY, pin);
+        showDashboard(data);
+      } catch (e) {
+        document.getElementById('pin-error').textContent = e.message || 'Incorrect PIN';
+        document.getElementById('pin-input').value = '';
+      }
+    }
+
+    async function fetchWallboard(pin) {
+      const res  = await fetch(`/api/wallboard?pin=${encodeURIComponent(pin)}`);
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Error loading data');
+      return body;
+    }
+
+    // ── RAG helpers ─────────────────────────────────────────────────────────
+
+    function daysUntil(isoDate) {
+      if (!isoDate) return null;
+      const diff = new Date(isoDate) - new Date(new Date().toDateString());
+      return Math.ceil(diff / 86400000);
+    }
+
+    function addMonths(isoDate, months) {
+      const d = new Date(isoDate);
+      d.setMonth(d.getMonth() + months);
+      return d.toISOString().slice(0, 10);
+    }
+
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      const [y, m, d] = iso.split('-');
+      return `${d} ${SHORT_MONTH[parseInt(m) - 1]} ${y}`;
+    }
+
+    function ragFromDays(days, warnDays) {
+      if (days === null) return 'grey';
+      if (days < 0)         return 'red';
+      if (days <= warnDays) return 'amber';
+      return 'green';
+    }
+
+    function statusLabel(days) {
+      if (days === null) return '—';
+      if (days < 0)  return 'OVERDUE';
+      if (days === 0) return 'TODAY';
+      if (days === 1) return '1 day';
+      return `${days} days`;
+    }
+
+    // ── Cards ────────────────────────────────────────────────────────────────
+
+    function buildCard(label, rag, statusText, detail, sub) {
+      return `
+        <div class="wb-card ${rag}">
+          <div class="wb-card-label">${label}</div>
+          <div class="wb-card-status">${statusText}</div>
+          <div>
+            <div class="wb-card-detail">${detail}</div>
+            ${sub ? `<div class="wb-card-sub">${sub}</div>` : ''}
+          </div>
+        </div>`;
+    }
+
+    function renderMOT(maint) {
+      const m    = maint.mot || {};
+      const days = daysUntil(m.next_due);
+      const rag  = ragFromDays(days, m.warn_days || 30);
+      const status = days === null ? '—' : (days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`);
+      const detail = m.next_due ? `Due ${fmtDate(m.next_due)}` : 'No date set';
+      return buildCard('MOT', rag, status, detail, days !== null && days >= 0 ? `${days} day${days !== 1 ? 's' : ''} remaining` : '');
+    }
+
+    function renderService(maint, currentMileage, lastService) {
+      const s = maint.service || {};
+      const intervalMiles  = s.interval_miles  || 10000;
+      const intervalMonths = s.interval_months || 12;
+      const warnDays       = s.warn_days || 14;
+
+      let dueMileage = null, dueDate = null, milesDue = null, daysDue = null;
+
+      if (lastService) {
+        if (lastService.mileage != null) {
+          dueMileage = lastService.mileage + intervalMiles;
+        }
+        if (lastService.done_at) {
+          dueDate = addMonths(lastService.done_at, intervalMonths);
+        }
+      }
+
+      const milesRemaining = (dueMileage != null && currentMileage != null)
+        ? dueMileage - currentMileage : null;
+      daysDue = daysUntil(dueDate);
+
+      // Whichever trigger is sooner
+      let rag = 'grey', statusText = '—', detail = '', sub = '';
+
+      const warnMiles = intervalMiles * 0.1; // warn at 10% of interval remaining
+
+      if (milesRemaining !== null || daysDue !== null) {
+        const milesRag = milesRemaining !== null
+          ? (milesRemaining < 0 ? 'red' : milesRemaining <= warnMiles ? 'amber' : 'green')
+          : 'grey';
+        const dateRag  = ragFromDays(daysDue, warnDays);
+
+        const ragOrder = { red: 0, amber: 1, green: 2, grey: 3 };
+        rag = ragOrder[milesRag] <= ragOrder[dateRag] ? milesRag : dateRag;
+
+        const parts = [];
+        if (milesRemaining !== null) {
+          parts.push(milesRemaining < 0
+            ? `${Math.abs(milesRemaining).toLocaleString()} mi overdue`
+            : `${milesRemaining.toLocaleString()} mi remaining`);
+        }
+        if (daysDue !== null) {
+          parts.push(daysDue < 0 ? `${Math.abs(daysDue)}d overdue by date` : `${daysDue}d by date`);
+        }
+
+        if (milesRemaining !== null && milesRemaining < 0) {
+          statusText = 'OVERDUE';
+        } else if (daysDue !== null && daysDue < 0) {
+          statusText = 'OVERDUE';
+        } else if (milesRemaining !== null) {
+          statusText = `${milesRemaining.toLocaleString()}mi`;
+        } else {
+          statusText = `${daysDue}d`;
+        }
+
+        detail = parts[0] || '—';
+        sub    = parts[1] || '';
+
+        if (dueDate && milesRemaining !== null) sub = (sub ? sub + ' · ' : '') + `Date due ${fmtDate(dueDate)}`;
+        else if (dueDate) detail = `Due ${fmtDate(dueDate)}`;
+      } else {
+        detail = 'No service recorded';
+      }
+
+      return buildCard('Service', rag, statusText, detail, sub);
+    }
+
+    function renderInsurance(maint) {
+      const m    = maint.insurance || {};
+      const days = daysUntil(m.next_due);
+      const rag  = ragFromDays(days, m.warn_days || 30);
+      const status = days === null ? '—' : (days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`);
+      const detail = m.next_due ? `Expires ${fmtDate(m.next_due)}` : 'No date set';
+      return buildCard('Insurance', rag, status, detail, '');
+    }
+
+    function renderDeepClean(maint, lastClean) {
+      const dc = maint.deep_clean || {};
+      const intervalDays = dc.interval_days || 60;
+      const warnDays     = dc.warn_days || 7;
+
+      let dueDate = null;
+      if (lastClean?.done_at) {
+        const d = new Date(lastClean.done_at);
+        d.setDate(d.getDate() + intervalDays);
+        dueDate = d.toISOString().slice(0, 10);
+      }
+
+      const days   = daysUntil(dueDate);
+      const rag    = ragFromDays(days, warnDays);
+      const status = days === null ? '—' : (days < 0 ? 'OVERDUE' : days === 0 ? 'TODAY' : `${days}d`);
+      const detail = dueDate ? `Due ${fmtDate(dueDate)}` : 'No clean recorded';
+      const sub    = lastClean?.done_at ? `Last ${fmtDate(lastClean.done_at)}` : '';
+      return buildCard('Deep Clean', rag, status, detail, sub);
+    }
+
+    // ── Render ───────────────────────────────────────────────────────────────
+
+    function showDashboard(data) {
+      document.getElementById('pin-screen').classList.add('hidden');
+      document.getElementById('dashboard').classList.remove('hidden');
+      renderData(data);
+
+      clearInterval(_refreshTimer);
+      _refreshTimer = setInterval(async () => {
+        try {
+          const pin  = localStorage.getItem(PIN_KEY);
+          const data = await fetchWallboard(pin);
+          renderData(data);
+        } catch { /* keep showing last data */ }
+      }, REFRESH_MS);
+    }
+
+    function renderData(data) {
+      const { callsign, maintenance, current_mileage, current_mileage_date, last_maintenance } = data;
+
+      document.getElementById('wb-callsign').textContent = callsign;
+
+      const grid = document.getElementById('wb-grid');
+      grid.innerHTML =
+        renderMOT(maintenance) +
+        renderService(maintenance, current_mileage, last_maintenance.service) +
+        renderInsurance(maintenance) +
+        renderDeepClean(maintenance, last_maintenance.deep_clean);
+
+      const mileageEl = document.getElementById('wb-mileage');
+      if (current_mileage != null) {
+        mileageEl.innerHTML = `Current mileage: <strong>${current_mileage.toLocaleString()}</strong>${current_mileage_date ? ` &nbsp;·&nbsp; Last VDI ${fmtDate(current_mileage_date)}` : ''}`;
+      } else {
+        mileageEl.textContent = 'No mileage recorded';
+      }
+
+      const now = new Date();
+      document.getElementById('wb-refresh-time').textContent =
+        `Updated ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    (async () => {
+      const saved = localStorage.getItem(PIN_KEY);
+      if (saved) {
+        try {
+          const data = await fetchWallboard(saved);
+          showDashboard(data);
+          return;
+        } catch {
+          localStorage.removeItem(PIN_KEY);
+        }
+      }
+      // Show PIN screen
+    })();
+  </script>
+</body>
+</html>

@@ -607,15 +607,17 @@ async function deleteUnavailability(id) {
 async function loadVehicleSettings() {
   try {
     const { config } = await CFR.apiGet('/api/config/vehicle');
-    document.getElementById('cfg-callsign').value = config.callsign || '';
-    document.getElementById('cfg-tread').value    = config.tread_warn_mm || 3;
+    document.getElementById('cfg-callsign').value      = config.callsign || '';
+    document.getElementById('cfg-tread').value         = config.tread_warn_mm || 3;
+    document.getElementById('cfg-wallboard-pin').value = config.wallboard_pin || '';
     const m = config.maintenance || {};
-    document.getElementById('maint-mot-due').value       = m.mot?.next_due      || '';
-    document.getElementById('maint-mot-warn').value      = m.mot?.warn_days     || 30;
-    document.getElementById('maint-service-due').value   = m.service?.next_due  || '';
-    document.getElementById('maint-service-warn').value  = m.service?.warn_days || 14;
-    document.getElementById('maint-insurance-due').value  = m.insurance?.next_due  || '';
-    document.getElementById('maint-insurance-warn').value = m.insurance?.warn_days || 30;
+    document.getElementById('maint-mot-due').value        = m.mot?.next_due         || '';
+    document.getElementById('maint-mot-warn').value       = m.mot?.warn_days        || 30;
+    document.getElementById('maint-service-miles').value  = m.service?.interval_miles  || 10000;
+    document.getElementById('maint-service-months').value = m.service?.interval_months || 12;
+    document.getElementById('maint-service-warn').value   = m.service?.warn_days       || 14;
+    document.getElementById('maint-insurance-due').value  = m.insurance?.next_due   || '';
+    document.getElementById('maint-insurance-warn').value = m.insurance?.warn_days   || 30;
     document.getElementById('maint-clean-interval').value = m.deep_clean?.interval_days || 60;
     document.getElementById('maint-clean-warn').value     = m.deep_clean?.warn_days     || 7;
   } catch (e) { CFR.toast(e.message, 'error'); }
@@ -624,12 +626,13 @@ async function loadVehicleSettings() {
 }
 
 async function saveVehicleSettings() {
-  const callsign  = document.getElementById('cfg-callsign').value.trim();
-  const tread     = parseFloat(document.getElementById('cfg-tread').value);
+  const callsign     = document.getElementById('cfg-callsign').value.trim();
+  const tread        = parseFloat(document.getElementById('cfg-tread').value);
+  const wallboard_pin = document.getElementById('cfg-wallboard-pin').value.trim() || null;
   if (!callsign) { CFR.toast('Call sign is required.', 'warning'); return; }
   if (isNaN(tread) || tread < 1.6) { CFR.toast('Tread threshold must be at least 1.6mm.', 'warning'); return; }
   try {
-    const { config } = await CFR.apiPatch('/api/config/vehicle', { callsign, tread_warn_mm: tread });
+    const { config } = await CFR.apiPatch('/api/config/vehicle', { callsign, tread_warn_mm: tread, wallboard_pin });
     localStorage.setItem('cfr_vehicle_config', JSON.stringify(config));
     CFR.toast('Settings saved.', 'success');
     document.querySelectorAll('.callsign').forEach(el => { el.textContent = callsign; });
@@ -639,7 +642,7 @@ async function saveVehicleSettings() {
 async function saveMaintenanceSettings() {
   const maintenance = {
     mot:       { next_due: document.getElementById('maint-mot-due').value      || null, warn_days: parseInt(document.getElementById('maint-mot-warn').value) || 30 },
-    service:   { next_due: document.getElementById('maint-service-due').value  || null, warn_days: parseInt(document.getElementById('maint-service-warn').value) || 14 },
+    service:   { interval_miles: parseInt(document.getElementById('maint-service-miles').value) || 10000, interval_months: parseInt(document.getElementById('maint-service-months').value) || 12, warn_days: parseInt(document.getElementById('maint-service-warn').value) || 14 },
     insurance: { next_due: document.getElementById('maint-insurance-due').value || null, warn_days: parseInt(document.getElementById('maint-insurance-warn').value) || 30 },
     deep_clean: { interval_days: parseInt(document.getElementById('maint-clean-interval').value) || 60, warn_days: parseInt(document.getElementById('maint-clean-warn').value) || 7 },
   };
@@ -649,15 +652,24 @@ async function saveMaintenanceSettings() {
   } catch (e) { CFR.toast(e.message, 'error'); }
 }
 
+function toggleMileageField() {
+  const isService = document.getElementById('maint-log-type').value === 'service';
+  document.getElementById('maint-log-mileage-wrap').classList.toggle('hidden', !isService);
+}
+
 async function recordMaintenanceDone() {
   const type    = document.getElementById('maint-log-type').value;
   const done_at = document.getElementById('maint-log-date').value;
   const notes   = document.getElementById('maint-log-notes').value.trim();
+  const mileageEl = document.getElementById('maint-log-mileage');
+  const mileage = type === 'service' && mileageEl.value ? parseInt(mileageEl.value) : null;
   if (!done_at) { CFR.toast('Please set a date.', 'warning'); return; }
+  if (type === 'service' && !mileage) { CFR.toast('Please enter the mileage at service.', 'warning'); return; }
   try {
-    await CFR.apiPost('/api/maintenance/log', { type, done_at, notes });
+    await CFR.apiPost('/api/maintenance/log', { type, done_at, notes, mileage });
     CFR.toast(`${MAINT_LABELS[type]} recorded.`, 'success');
-    document.getElementById('maint-log-notes').value = '';
+    document.getElementById('maint-log-notes').value   = '';
+    document.getElementById('maint-log-mileage').value = '';
     loadMaintenanceHistory();
   } catch (e) { CFR.toast(e.message, 'error'); }
 }

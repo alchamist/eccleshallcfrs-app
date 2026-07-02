@@ -92,8 +92,11 @@ export async function onRequestPost({ request, env, data }) {
     created_by:     user.id,
   };
 
-  await env.CFR_DATA.put(`vshift:${dateStr}:${id}`, JSON.stringify(shift));
-  await env.CFR_DATA.put('vshift:active', id);
+  await Promise.all([
+    env.CFR_DATA.put(`vshift:${dateStr}:${id}`, JSON.stringify(shift)),
+    env.CFR_DATA.put('vshift:active', id),
+    env.CFR_DATA.put(`vidx:${id}`, `vshift:${dateStr}:${id}`),
+  ]);
 
   return Response.json({ shift }, { status: 201 });
 }
@@ -173,9 +176,16 @@ async function getShiftById(env, id) {
 }
 
 async function getShiftWithKey(env, id) {
+  // O(1) index lookup; falls back to list scan for shifts created before index was added
+  const key = await env.CFR_DATA.get(`vidx:${id}`);
+  if (key) {
+    const shift = await env.CFR_DATA.get(key, { type: 'json' });
+    if (shift) return { key, shift };
+  }
   const { keys } = await env.CFR_DATA.list({ prefix: 'vshift:' });
   const k = keys.find(k => k.name !== 'vshift:active' && k.name.includes(id));
   if (!k) return { key: null, shift: null };
   const shift = await env.CFR_DATA.get(k.name, { type: 'json' });
+  if (shift) await env.CFR_DATA.put(`vidx:${id}`, k.name); // backfill index for legacy shift
   return { key: k.name, shift };
 }

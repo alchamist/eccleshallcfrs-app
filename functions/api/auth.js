@@ -17,8 +17,25 @@ async function allUsers(env) {
 }
 
 async function findByPrf(env, prf) {
+  const prf_clean = String(prf).trim();
+  // O(1) index lookup; falls back to full scan for users created before index was added
+  const key = await env.CFR_USERS.get(`prf:${prf_clean}`);
+  if (key) {
+    const user = await env.CFR_USERS.get(`user:${key}`, { type: 'json' });
+    if (user) return user;
+  }
   const users = await allUsers(env);
-  return users.find(u => String(u.prf_number || '').trim() === String(prf).trim());
+  return users.find(u => String(u.prf_number || '').trim() === prf_clean);
+}
+
+async function checkRateLimit(env, ip) {
+  if (!ip || ip === 'unknown') return true;
+  const bucket = Math.floor(Date.now() / 60000); // 1-minute window
+  const key    = `ratelimit:${ip}:${bucket}`;
+  const count  = parseInt(await env.CFR_USERS.get(key) || '0', 10);
+  if (count >= 10) return false;
+  await env.CFR_USERS.put(key, String(count + 1), { expirationTtl: 120 });
+  return true;
 }
 
 async function verifyDevicePin(env, device_pin) {
@@ -32,10 +49,17 @@ async function getActiveShift(env) {
   try {
     const activeId = await env.CFR_DATA.get('vshift:active');
     if (!activeId) return { activeShiftId: null, activeCrew: [] };
-    const { keys } = await env.CFR_DATA.list({ prefix: 'vshift:' });
-    const k = keys.find(k => k.name !== 'vshift:active' && k.name.includes(activeId));
-    if (!k) return { activeShiftId: null, activeCrew: [] };
-    const shift = await env.CFR_DATA.get(k.name, { type: 'json' });
+    // Try O(1) index lookup; fall back to list scan for legacy shifts
+    let shift = null;
+    const idxKey = await env.CFR_DATA.get(`vidx:${activeId}`);
+    if (idxKey) {
+      shift = await env.CFR_DATA.get(idxKey, { type: 'json' });
+    }
+    if (!shift) {
+      const { keys } = await env.CFR_DATA.list({ prefix: 'vshift:' });
+      const k = keys.find(k => k.name !== 'vshift:active' && k.name.includes(activeId));
+      if (k) shift = await env.CFR_DATA.get(k.name, { type: 'json' });
+    }
     if (!shift || shift.status !== 'active') return { activeShiftId: null, activeCrew: [] };
     return {
       activeShiftId: activeId,
@@ -67,6 +91,12 @@ async function writeAuditLogin(env, request, user, method) {
 }
 
 export async function onRequestPost({ request, env }) {
+  const ip      = request.headers.get('CF-Connecting-IP') || 'unknown';
+  const allowed = await checkRateLimit(env, ip);
+  if (!allowed) {
+    return Response.json({ error: 'Too many attempts. Please wait a minute and try again.' }, { status: 429 });
+  }
+
   let body;
   try { body = await request.json(); } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });

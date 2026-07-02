@@ -1,9 +1,10 @@
 const DEFAULT = {
   callsign:      'RC0681',
   tread_warn_mm: 3.0,
+  wallboard_pin: null,
   maintenance: {
     mot:        { next_due: null, warn_days: 30 },
-    service:    { next_due: null, warn_days: 14 },
+    service:    { next_due: null, warn_days: 14, interval_miles: 10000, interval_months: 12 },
     insurance:  { next_due: null, warn_days: 30 },
     deep_clean: { interval_days: 60, warn_days: 7 },
   },

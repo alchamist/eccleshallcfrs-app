@@ -18,7 +18,7 @@ export async function onRequestPost({ env, data, request }) {
   try { body = await request.json(); } catch {
     return Response.json({ error: 'Invalid JSON' }, { status: 400 });
   }
-  const { type, done_at, notes } = body;
+  const { type, done_at, notes, mileage } = body;
   if (!type || !VALID_TYPES.includes(type)) return Response.json({ error: 'Invalid type' }, { status: 400 });
   if (!done_at) return Response.json({ error: 'done_at required' }, { status: 400 });
 
@@ -27,6 +27,7 @@ export async function onRequestPost({ env, data, request }) {
     type,
     done_at,
     notes:       notes || '',
+    mileage:     mileage != null ? Number(mileage) : null,
     recorded_by: data.user.id,
     recorded_at: new Date().toISOString(),
   };

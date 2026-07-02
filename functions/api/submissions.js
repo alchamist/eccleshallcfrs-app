@@ -1,9 +1,23 @@
 // GET    /api/submissions — aggregated list across all types for coordinator view
 // DELETE /api/submissions?key=KV_KEY — delete a specific record (coordinator only)
 
+const ALL_PREFIXES = [
+  { prefix: 'duty:',                         t: 'duty'              },
+  { prefix: 'vshift:',                        t: 'vshift'            },
+  { prefix: 'vdi:',                           t: 'vdi'               },
+  { prefix: 'claim:',                         t: 'claim'             },
+  { prefix: 'monthly:',                       t: 'monthly'           },
+  { prefix: 'fire_safety:alarm:',             t: 'fire_alarm'        },
+  { prefix: 'fire_safety:lighting:',          t: 'fire_lighting'     },
+  { prefix: 'fire_safety:extinguisher:',      t: 'fire_extinguisher' },
+];
+
+const TYPE_TO_PREFIX = Object.fromEntries(ALL_PREFIXES.map(p => [p.t, p.prefix]));
+const FSO_TYPES = new Set(['fire_alarm', 'fire_lighting', 'fire_extinguisher']);
+
 function requireCoordinator(data) {
-  const isCoord = data.user.roles?.includes('coordinator') || data.user.roles?.includes('fire_safety_officer');
-  if (!isCoord) {
+  const roles = data.user.roles || [];
+  if (!roles.includes('coordinator') && !roles.includes('fire_safety_officer')) {
     return Response.json({ error: 'Coordinator or Fire Safety Officer role required' }, { status: 403 });
   }
   return null;
@@ -13,23 +27,26 @@ export async function onRequestGet({ request, env, data }) {
   const deny = requireCoordinator(data);
   if (deny) return deny;
 
+  const { user } = data;
+  const isFullCoord = user.roles?.includes('coordinator');
   const url  = new URL(request.url);
   const type = url.searchParams.get('type'); // duty|vshift|vdi|claim|monthly|fire_alarm|fire_lighting|fire_extinguisher
   const from = url.searchParams.get('from');
   const to   = url.searchParams.get('to');
 
-  const prefixes = type
-    ? [{ prefix: `${type}:`, t: type }]
-    : [
-        { prefix: 'duty:',    t: 'duty'    },
-        { prefix: 'vshift:',  t: 'vshift'  },
-        { prefix: 'vdi:',     t: 'vdi'     },
-        { prefix: 'claim:',   t: 'claim'   },
-        { prefix: 'monthly:', t: 'monthly' },
-        { prefix: 'fire_safety:alarm:', t: 'fire_alarm' },
-        { prefix: 'fire_safety:lighting:', t: 'fire_lighting' },
-        { prefix: 'fire_safety:extinguisher:', t: 'fire_extinguisher' },
-      ];
+  // FSO without coordinator role is restricted to fire safety record types only
+  if (!isFullCoord && type && !FSO_TYPES.has(type)) {
+    return Response.json({ error: 'Access restricted to fire safety records' }, { status: 403 });
+  }
+
+  let prefixes;
+  if (type) {
+    const prefix = TYPE_TO_PREFIX[type];
+    if (!prefix) return Response.json({ error: 'Unknown type' }, { status: 400 });
+    prefixes = [{ prefix, t: type }];
+  } else {
+    prefixes = isFullCoord ? ALL_PREFIXES : ALL_PREFIXES.filter(p => FSO_TYPES.has(p.t));
+  }
 
   const allRecords = (await Promise.all(
     prefixes.map(async ({ prefix, t }) => {
@@ -71,8 +88,9 @@ export async function onRequestGet({ request, env, data }) {
 }
 
 export async function onRequestDelete({ request, env, data }) {
-  const deny = requireCoordinator(data);
-  if (deny) return deny;
+  if (!data.user.roles?.includes('coordinator')) {
+    return Response.json({ error: 'Coordinator role required' }, { status: 403 });
+  }
 
   const url = new URL(request.url);
   const key = url.searchParams.get('key');

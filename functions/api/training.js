@@ -1,17 +1,23 @@
 export async function onRequestGet({ request, env, data }) {
-  const url    = new URL(request.url);
-  const user   = data.user;
-  const from   = url.searchParams.get('from');
-  const to     = url.searchParams.get('to');
-  const userId = url.searchParams.get('user_id');
+  const url      = new URL(request.url);
+  const user     = data.user;
+  const isCoord  = user.roles?.includes('coordinator');
+  const from     = url.searchParams.get('from');
+  const to       = url.searchParams.get('to');
+  const userId   = url.searchParams.get('user_id');
 
-  const prefix = 'training:';
-  const { keys } = await env.CFR_DATA.list({ prefix });
+  const { keys } = await env.CFR_DATA.list({ prefix: 'training:' });
   let entries = (await Promise.all(keys.map(k => env.CFR_DATA.get(k.name, { type: 'json' })))).filter(Boolean);
+
+  // Responders see only their own records; coordinators can see all or filter by user_id
+  if (!isCoord) {
+    entries = entries.filter(e => e.user_id === user.id);
+  } else if (userId) {
+    entries = entries.filter(e => e.user_id === userId);
+  }
 
   if (from) entries = entries.filter(e => e.date >= from);
   if (to)   entries = entries.filter(e => e.date <= to);
-  if (userId) entries = entries.filter(e => e.user_id === userId);
 
   entries.sort((a, b) => b.date.localeCompare(a.date));
   return Response.json({ entries });

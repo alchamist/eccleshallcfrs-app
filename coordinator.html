@@ -259,10 +259,15 @@
           <label class="form-label">Vehicle Call Sign</label>
           <input id="cfg-callsign" class="form-input" type="text" placeholder="e.g. RC0681">
         </div>
-        <div class="form-group mb-0">
+        <div class="form-group">
           <label class="form-label">Tyre Tread Warning Threshold (mm)</label>
           <input id="cfg-tread" class="form-input" type="number" min="1.6" max="8" step="0.1" placeholder="e.g. 3">
           <p class="form-hint">A warning will be shown on the VDI when any tyre falls below this value. Legal minimum is 1.6mm.</p>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Wallboard PIN</label>
+          <input id="cfg-wallboard-pin" class="form-input" type="text" inputmode="numeric" maxlength="8" placeholder="e.g. 1234">
+          <p class="form-hint">PIN for the compliance wallboard display. Leave blank to disable wallboard access.</p>
         </div>
         <hr class="divider">
         <button class="btn btn-primary btn-block" onclick="saveVehicleSettings()">Save Settings</button>
@@ -288,9 +293,15 @@
         <p class="section-heading">Service</p>
         <div class="form-row">
           <div class="form-group mb-0">
-            <label class="form-label">Next Due</label>
-            <input id="maint-service-due" class="form-input" type="date">
+            <label class="form-label">Interval (miles)</label>
+            <input id="maint-service-miles" class="form-input" type="number" min="1000" step="500" placeholder="10000">
           </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Interval (months)</label>
+            <input id="maint-service-months" class="form-input" type="number" min="1" placeholder="12">
+          </div>
+        </div>
+        <div class="form-row" style="margin-top:12px;">
           <div class="form-group mb-0">
             <label class="form-label">Warn (days before)</label>
             <input id="maint-service-warn" class="form-input" type="number" min="1" placeholder="14">
@@ -331,7 +342,7 @@
         <p class="card-subtitle">Record when maintenance has been carried out. This updates the audit trail.</p>
         <div class="form-group">
           <label class="form-label">Type</label>
-          <select id="maint-log-type" class="form-select">
+          <select id="maint-log-type" class="form-select" onchange="toggleMileageField()">
             <option value="mot">MOT</option>
             <option value="service">Service</option>
             <option value="insurance">Insurance</option>
@@ -342,9 +353,14 @@
           <label class="form-label">Date Completed</label>
           <input id="maint-log-date" class="form-input" type="date">
         </div>
+        <div id="maint-log-mileage-wrap" class="form-group hidden">
+          <label class="form-label">Mileage at Service <span class="req">*</span></label>
+          <input id="maint-log-mileage" class="form-input" type="number" min="0" placeholder="e.g. 23456">
+          <p class="form-hint">Used to calculate miles remaining until next service.</p>
+        </div>
         <div class="form-group mb-0">
           <label class="form-label">Notes (optional)</label>
-          <input id="maint-log-notes" class="form-input" type="text" placeholder="e.g. Garage name, mileage at service">
+          <input id="maint-log-notes" class="form-input" type="text" placeholder="e.g. Garage name, invoice number">
         </div>
         <hr class="divider">
         <button class="btn btn-success btn-block" onclick="recordMaintenanceDone()">Record</button>
