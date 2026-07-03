@@ -1,6 +1,11 @@
 const DVLA_CACHE_KEY = 'dvla_cache';
 const DVLA_TTL       = 23 * 60 * 60 * 1000;
 
+// Cache the full computed wallboard payload for 10 minutes so repeated refreshes
+// from the wall tablet don't scan all KV records every 5 minutes.
+const WB_CACHE_KEY = 'wallboard_cache';
+const WB_CACHE_TTL = 10 * 60 * 1000;
+
 async function getDVLAData(env, config) {
   let cache = await env.CFR_DATA.get(DVLA_CACHE_KEY, { type: 'json' });
   const stale = !cache?.fetched_at || Date.now() - new Date(cache.fetched_at).getTime() > DVLA_TTL;
@@ -54,29 +59,30 @@ async function getDutyStatus(env) {
 async function getStats(env) {
   const now   = new Date();
   const today = now.toISOString().slice(0, 10);
-  const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
-  const yearStart  = `${now.getFullYear()}-01-01`;
+  const year  = now.getFullYear();
+  const mm    = String(now.getMonth() + 1).padStart(2, '0');
+  const monthStart = `${year}-${mm}-01`;
 
-  const [{ keys: dutyKeys }, { keys: claimKeys }] = await Promise.all([
-    env.CFR_DATA.list({ prefix: 'duty:' }),
-    env.CFR_DATA.list({ prefix: 'claim:' }),
+  // Scope to current year/month only — avoids scanning all-time records
+  const [{ keys: claimKeys }, { keys: dutyKeys }] = await Promise.all([
+    env.CFR_DATA.list({ prefix: `claim:${year}-` }),
+    env.CFR_DATA.list({ prefix: `duty:${year}-${mm}-` }),
   ]);
 
-  const [dutyRecords, claimRecords] = await Promise.all([
-    Promise.all(dutyKeys.map(k => env.CFR_DATA.get(k.name, { type: 'json' }))).then(r => r.filter(Boolean)),
+  const [claimRecords, dutyRecords] = await Promise.all([
     Promise.all(claimKeys.map(k => env.CFR_DATA.get(k.name, { type: 'json' }))).then(r => r.filter(Boolean)),
+    Promise.all(dutyKeys.map(k => env.CFR_DATA.get(k.name, { type: 'json' }))).then(r => r.filter(Boolean)),
   ]);
 
   const incidents = claimRecords.filter(c => c.incident_type && c.incident_type !== 'na');
 
   const incToday = incidents.filter(c => (c.date || '') === today).length;
   const incMonth = incidents.filter(c => (c.date || '') >= monthStart).length;
-  const incYear  = incidents.filter(c => (c.date || '') >= yearStart).length;
+  const incYear  = incidents.length;
 
-  const dutyThisMonth = dutyRecords.filter(d => (d.date || '') >= monthStart);
   const hoursThisMonth = Math.round(
-    dutyThisMonth.reduce((s, d) => s + (d.duration_mins || 0), 0) / 6
-  ) / 10; // 1 dp
+    dutyRecords.reduce((s, d) => s + (d.duration_mins || 0), 0) / 6
+  ) / 10;
 
   return { incToday, incMonth, incYear, hoursThisMonth };
 }
@@ -85,6 +91,7 @@ export async function onRequestGet({ env, request }) {
   const url = new URL(request.url);
   const pin = url.searchParams.get('pin');
 
+  // PIN check first — read config only (2 reads total for a cache hit)
   const config = await env.CFR_DATA.get('config:vehicle', { type: 'json' }) || {};
 
   if (!config.wallboard_pin) {
@@ -94,14 +101,19 @@ export async function onRequestGet({ env, request }) {
     return Response.json({ error: 'Invalid PIN' }, { status: 401 });
   }
 
-  // Latest VDI for current mileage
+  // Serve cached payload if fresh (saves ~50+ KV reads per call)
+  const cached = await env.CFR_DATA.get(WB_CACHE_KEY, { type: 'json' });
+  if (cached?.cached_at && Date.now() - new Date(cached.cached_at).getTime() < WB_CACHE_TTL) {
+    return Response.json(cached.payload);
+  }
+
+  // Full recompute — runs at most once per WB_CACHE_TTL window
   const { keys: vdiKeys } = await env.CFR_DATA.list({ prefix: 'vdi:' });
   vdiKeys.sort((a, b) => b.name.localeCompare(a.name));
   const latestVDI = vdiKeys.length
     ? await env.CFR_DATA.get(vdiKeys[0].name, { type: 'json' })
     : null;
 
-  // Recent maintenance log — find last entry per type
   const { keys: maintKeys } = await env.CFR_DATA.list({ prefix: 'maintenance_log:' });
   maintKeys.sort((a, b) => b.name.localeCompare(a.name));
   const recentEntries = (
@@ -126,7 +138,7 @@ export async function onRequestGet({ env, request }) {
     getStats(env),
   ]);
 
-  return Response.json({
+  const payload = {
     callsign:             config.callsign || 'RC0681',
     maintenance:          { ...DEFAULT_MAINT, ...(config.maintenance || {}) },
     current_mileage:      latestVDI?.starting_mileage ?? null,
@@ -135,5 +147,11 @@ export async function onRequestGet({ env, request }) {
     dvla,
     duty,
     stats,
-  });
+  };
+
+  // Store with a 10-minute TTL (also set KV expiration so it self-cleans)
+  await env.CFR_DATA.put(WB_CACHE_KEY, JSON.stringify({ cached_at: new Date().toISOString(), payload }),
+    { expirationTtl: 600 });
+
+  return Response.json(payload);
 }
