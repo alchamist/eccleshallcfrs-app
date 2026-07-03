@@ -1,10 +1,10 @@
 const DVLA_CACHE_KEY = 'dvla_cache';
 const DVLA_TTL       = 23 * 60 * 60 * 1000;
 
-// Cache the full computed wallboard payload for 10 minutes so repeated refreshes
+// Cache the full computed wallboard payload for 30 minutes so repeated refreshes
 // from the wall tablet don't scan all KV records every 5 minutes.
 const WB_CACHE_KEY = 'wallboard_cache';
-const WB_CACHE_TTL = 10 * 60 * 1000;
+const WB_CACHE_TTL = 30 * 60 * 1000;
 
 async function getDVLAData(env, config) {
   let cache = await env.CFR_DATA.get(DVLA_CACHE_KEY, { type: 'json' });
@@ -151,7 +151,7 @@ export async function onRequestGet({ env, request }) {
 
   // Store with a 10-minute TTL (also set KV expiration so it self-cleans)
   await env.CFR_DATA.put(WB_CACHE_KEY, JSON.stringify({ cached_at: new Date().toISOString(), payload }),
-    { expirationTtl: 600 });
+    { expirationTtl: 1800 });
 
   return Response.json(payload);
 }
