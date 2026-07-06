@@ -116,7 +116,7 @@ function renderExpiryInputs(itemId) {
     .map(y => `<option value="${y}">${y}</option>`).join('');
 
   return `
-    <div class="expiry-inputs" id="expiry-${itemId}">
+    <div class="expiry-inputs" id="expiry-${itemId}" onclick="event.stopPropagation()">
       <select onchange="setExpiry('${itemId}','month',this.value)">
         <option value="">Mnth</option>${monthOpts}
       </select>
