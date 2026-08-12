@@ -8,8 +8,16 @@ if (!CFR.hasRole('coordinator') && !CFR.hasRole('fire_safety_officer')) {
 let activeTab = 'submissions';
 let _users    = [];
 
-// If user is Fire Safety Officer only (not coordinator), restrict to fire-safety tab
+// Hide tabs based on feature flags and role restrictions
 window.addEventListener('load', () => {
+  if (!CFR.hasFeature('fire_safety')) {
+    document.querySelector('[data-tab="fire-safety"]')?.classList.add('hidden');
+  }
+  if (!CFR.hasFeature('training')) {
+    document.querySelector('[data-tab="training"]')?.classList.add('hidden');
+  }
+
+  // If user is Fire Safety Officer only (not coordinator), restrict to fire-safety tab
   if (!CFR.hasRole('coordinator') && CFR.hasRole('fire_safety_officer')) {
     document.querySelectorAll('[data-tab]').forEach(btn => {
       if (btn.dataset.tab !== 'fire-safety') btn.classList.add('hidden');
