@@ -189,20 +189,24 @@ async function submitForm(endpoint, payload) {
 
 function getVehicleConfig() {
   const raw = localStorage.getItem('cfr_vehicle_config');
-  return raw ? JSON.parse(raw) : { callsign: 'RC0681', tread_warn_mm: 3.0 };
+  return raw ? JSON.parse(raw) : { scheme_name: 'Eccleshall CFR', callsign: 'RC0681', tread_warn_mm: 3.0 };
 }
 
 async function fetchVehicleConfig() {
   try {
     const data = await apiGet('/api/config/vehicle');
     localStorage.setItem('cfr_vehicle_config', JSON.stringify(data.config));
-    applyCallsign(data.config.callsign);
+    applyScheme(data.config.scheme_name, data.config.callsign);
     return data.config;
   } catch { return getVehicleConfig(); }
 }
 
-function applyCallsign(callsign) {
+function applyScheme(name, callsign) {
+  const schemeName = name || 'Eccleshall CFR';
+  document.querySelectorAll('.scheme-name').forEach(el => { el.textContent = schemeName; });
   document.querySelectorAll('.callsign').forEach(el => { el.textContent = callsign; });
+  // Update page title: "Page — Eccleshall CFR" → "Page — {scheme_name}"
+  document.title = document.title.replace(/ — [^—]+$/, ` — ${schemeName}`).replace(/^[^—]+$/, schemeName);
 }
 
 /* ── Navigation ──────────────────────────────────────────────────────────── */
@@ -363,8 +367,9 @@ document.addEventListener('DOMContentLoaded', () => {
   refreshSyncBadge();
   buildNav();
   buildHeader();
-  // Apply cached callsign immediately, then refresh in background
-  applyCallsign(getVehicleConfig().callsign);
+  // Apply cached scheme name + callsign immediately, then refresh in background
+  const _vc = getVehicleConfig();
+  applyScheme(_vc.scheme_name, _vc.callsign);
   if (isLoggedIn()) fetchVehicleConfig();
 });
 
@@ -386,7 +391,7 @@ window.CFR = {
   // auth
   getUser, getAccessKey, isLoggedIn, hasRole, logout, lockDevice, requireAuth, requireRole, setOnShift,
   // config
-  getVehicleConfig, fetchVehicleConfig,
+  getVehicleConfig, fetchVehicleConfig, applyScheme,
   // api
   apiGet, apiPost, apiPatch, apiDelete, submitForm,
   // queue

@@ -607,6 +607,7 @@ async function deleteUnavailability(id) {
 async function loadVehicleSettings() {
   try {
     const { config } = await CFR.apiGet('/api/config/vehicle');
+    document.getElementById('cfg-scheme-name').value   = config.scheme_name || '';
     document.getElementById('cfg-callsign').value      = config.callsign || '';
     document.getElementById('cfg-vrm').value           = config.vrm || '';
     document.getElementById('cfg-tread').value         = config.tread_warn_mm || 3;
@@ -628,6 +629,7 @@ async function loadVehicleSettings() {
 }
 
 async function saveVehicleSettings() {
+  const scheme_name   = document.getElementById('cfg-scheme-name').value.trim() || 'Eccleshall CFR';
   const callsign      = document.getElementById('cfg-callsign').value.trim();
   const vrm           = document.getElementById('cfg-vrm').value.trim().replace(/\s+/g, '').toUpperCase() || null;
   const tread         = parseFloat(document.getElementById('cfg-tread').value);
@@ -635,10 +637,10 @@ async function saveVehicleSettings() {
   if (!callsign) { CFR.toast('Call sign is required.', 'warning'); return; }
   if (isNaN(tread) || tread < 1.6) { CFR.toast('Tread threshold must be at least 1.6mm.', 'warning'); return; }
   try {
-    const { config } = await CFR.apiPatch('/api/config/vehicle', { callsign, vrm, tread_warn_mm: tread, wallboard_pin });
+    const { config } = await CFR.apiPatch('/api/config/vehicle', { scheme_name, callsign, vrm, tread_warn_mm: tread, wallboard_pin });
     localStorage.setItem('cfr_vehicle_config', JSON.stringify(config));
     CFR.toast('Settings saved.', 'success');
-    document.querySelectorAll('.callsign').forEach(el => { el.textContent = callsign; });
+    CFR.applyScheme(config.scheme_name, config.callsign);
   } catch (e) { CFR.toast(e.message, 'error'); }
 }
 

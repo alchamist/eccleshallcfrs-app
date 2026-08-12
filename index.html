@@ -95,7 +95,7 @@
   <div class="login-card">
     <div class="login-logo">
       <div class="login-logo-icon">🚑</div>
-      <h1>Eccleshall CFR</h1>
+      <h1 class="scheme-name">Eccleshall CFR</h1>
       <p>Community First Responders</p>
     </div>
 
@@ -206,6 +206,14 @@
 
   <script src="/js/app.js"></script>
   <script>
+    // Apply cached scheme name on login page (no auth required)
+    (function() {
+      const vc = CFR.getVehicleConfig();
+      if (vc.scheme_name) {
+        document.querySelectorAll('.scheme-name').forEach(el => { el.textContent = vc.scheme_name; });
+        document.title = vc.scheme_name;
+      }
+    })();
     if (CFR.isLoggedIn()) location.href = '/dashboard.html';
 
     const ALL_SECTIONS = ['device-pin', 'crew-picker', 'pin', 'setup', 'key'];

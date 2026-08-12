@@ -139,6 +139,7 @@ export async function onRequestGet({ env, request }) {
   ]);
 
   const payload = {
+    scheme_name:          config.scheme_name || 'Eccleshall CFR',
     callsign:             config.callsign || 'RC0681',
     maintenance:          { ...DEFAULT_MAINT, ...(config.maintenance || {}) },
     current_mileage:      latestVDI?.starting_mileage ?? null,

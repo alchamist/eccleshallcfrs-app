@@ -200,7 +200,7 @@
 
   <!-- PIN Entry -->
   <div id="pin-screen">
-    <div class="pin-logo">Eccleshall CFR</div>
+    <div class="pin-logo" id="wb-pin-logo">Eccleshall CFR</div>
     <div class="pin-title">Compliance Wallboard</div>
     <input id="pin-input" class="pin-input" type="password" inputmode="numeric"
            maxlength="8" placeholder="····" autocomplete="off">
@@ -212,7 +212,7 @@
   <div id="dashboard" class="hidden">
     <div class="wb-header">
       <div class="wb-logo">
-        <span class="wb-callsign" id="wb-callsign">RC0681</span> Eccleshall CFR
+        <span class="wb-callsign" id="wb-callsign">RC0681</span> <span id="wb-scheme-name">Eccleshall CFR</span>
       </div>
       <div style="text-align:right;">
         <div class="wb-clock" id="wb-clock">00:00</div>
@@ -465,9 +465,13 @@
 
     // ── Render ───────────────────────────────────────────────────────────────
     function renderData(data) {
-      const { callsign, maintenance, current_mileage, current_mileage_date,
+      const { scheme_name, callsign, maintenance, current_mileage, current_mileage_date,
               last_maintenance, dvla, duty, stats } = data;
 
+      const name = scheme_name || 'Eccleshall CFR';
+      document.getElementById('wb-scheme-name').textContent = name;
+      document.getElementById('wb-pin-logo').textContent    = name;
+      document.title = `Compliance Status — ${name}`;
       document.getElementById('wb-callsign').textContent = callsign;
 
       renderCompliance(maintenance, dvla, last_maintenance, current_mileage);

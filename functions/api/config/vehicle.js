@@ -1,4 +1,5 @@
 const DEFAULT = {
+  scheme_name:   'Eccleshall CFR',
   callsign:      'RC0681',
   vrm:           null,
   tread_warn_mm: 3.0,
