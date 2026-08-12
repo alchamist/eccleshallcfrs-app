@@ -185,6 +185,29 @@ async function submitForm(endpoint, payload) {
   }
 }
 
+/* ── Feature flags ───────────────────────────────────────────────────────── */
+
+function getFeatures() {
+  const raw = localStorage.getItem('cfr_features');
+  return raw ? JSON.parse(raw) : {};
+}
+
+function hasFeature(name) {
+  const f = getFeatures();
+  return f[name] !== false; // absent = enabled by default
+}
+
+async function fetchFeatures() {
+  try {
+    const data  = await apiGet('/api/config/features');
+    const after = JSON.stringify(data.features);
+    const before = localStorage.getItem('cfr_features');
+    localStorage.setItem('cfr_features', after);
+    if (before !== after) buildNav();
+    return data.features;
+  } catch { return getFeatures(); }
+}
+
 /* ── Vehicle config ──────────────────────────────────────────────────────── */
 
 function getVehicleConfig() {
@@ -228,12 +251,14 @@ function buildNav() {
 
   if (!user?._device_mode) links.push({ href: '/availability.html', icon: '📅', label: 'Rota' });
 
-  if (hasRole('responder')) {
+  if (hasFeature('training') && !user?._device_mode) links.push({ href: '/training.html', icon: '📚', label: 'Training' });
+
+  if (hasFeature('fire_safety') && hasRole('responder')) {
     links.push({ href: '/fire-alarm-test.html', icon: '🔔', label: 'Fire Alarm' });
     links.push({ href: '/emergency-lighting-test.html', icon: '💡', label: 'Lighting' });
   }
 
-  if (hasRole('fire_safety_officer') || hasRole('coordinator')) {
+  if (hasFeature('fire_safety') && (hasRole('fire_safety_officer') || hasRole('coordinator'))) {
     links.push({ href: '/extinguisher-test.html', icon: '🧯', label: 'Extinguisher' });
   }
 
@@ -241,6 +266,8 @@ function buildNav() {
     links.push({ href: '/coordinator.html', icon: '⚙️', label: 'Admin', priority: true });
   }
   if (hasRole('compliance'))  links.push({ href: '/compliance.html',  icon: '📋', label: 'Comply' });
+  if (hasRole('coordinator')) links.push({ href: '/system.html',      icon: '🔧', label: 'System' });
+  links.push({ href: '/help.html', icon: '❓', label: 'Help' });
 
   const cur = location.pathname;
   const priorityLinks = links.filter(l => l.priority);
@@ -370,7 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Apply cached scheme name + callsign immediately, then refresh in background
   const _vc = getVehicleConfig();
   applyScheme(_vc.scheme_name, _vc.callsign);
-  if (isLoggedIn()) fetchVehicleConfig();
+  if (isLoggedIn()) { fetchVehicleConfig(); fetchFeatures(); }
 });
 
 window.addEventListener('online', () => {
@@ -392,6 +419,8 @@ window.CFR = {
   getUser, getAccessKey, isLoggedIn, hasRole, logout, lockDevice, requireAuth, requireRole, setOnShift,
   // config
   getVehicleConfig, fetchVehicleConfig, applyScheme,
+  // features
+  getFeatures, hasFeature, fetchFeatures,
   // api
   apiGet, apiPost, apiPatch, apiDelete, submitForm,
   // queue

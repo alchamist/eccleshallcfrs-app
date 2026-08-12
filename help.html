@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Help — Eccleshall CFR</title>
+  <link rel="stylesheet" href="/css/app.css">
+  <style>
+    .help-section { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 10px; overflow: hidden; }
+    .help-section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px; cursor: pointer; font-weight: 600; font-size: 15px;
+      background: var(--surface); user-select: none;
+    }
+    .help-section-header:hover { background: var(--bg); }
+    .help-chevron { transition: transform .2s; font-style: normal; }
+    .help-section.open .help-chevron { transform: rotate(180deg); }
+    .help-section-body { display: none; padding: 0 16px 16px; }
+    .help-section-body p { margin: 10px 0 0; font-size: 14px; line-height: 1.6; color: var(--text); }
+    .help-section-body ul { margin: 8px 0 0 0; padding-left: 20px; font-size: 14px; line-height: 1.7; color: var(--text); }
+    .help-section-body li { margin-bottom: 2px; }
+    .help-section-body strong { color: var(--text); }
+    .help-icon { font-size: 18px; margin-right: 10px; }
+    .help-intro { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <span class="header-logo"><span class="scheme-name">Eccleshall CFR</span></span>
+    <span id="sync-badge" class="sync-indicator"></span>
+  </header>
+
+  <main class="page-content">
+    <div class="page-header">
+      <h1 class="page-title">Help &amp; Guide</h1>
+    </div>
+
+    <p class="help-intro">Tap any section to expand it. If something isn't working, try signing out and back in, or contact your coordinator.</p>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">🔑</span>Signing In</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>You can sign in two ways:</p>
+        <ul>
+          <li><strong>PRF number + PIN</strong> — use your WMAS PRF number and the 4-digit PIN your coordinator gave you.</li>
+          <li><strong>Access Key</strong> — a code in the format <em>cfr-word-word-1234</em>. Use this if you don't have a PRF number, or if you're setting up a shared device.</li>
+        </ul>
+        <p>Your PIN and access key are set by your coordinator. If you've forgotten them, ask your coordinator to reset your PIN.</p>
+        <p><strong>Installing the app:</strong> Open the app in your phone's browser, then use "Add to Home Screen" (Safari on iPhone, or the browser menu on Android). The app will then work like a native app and function offline.</p>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">🕐</span>Duty Hours</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>Use this to log each duty session — the time you were available and on call.</p>
+        <ul>
+          <li>Enter your start and end time, and the date.</li>
+          <li>Record how many incidents you were <strong>allocated</strong> (dispatched to) and how many you <strong>attended</strong> (arrived at scene).</li>
+          <li>Add any notes if relevant.</li>
+          <li>Submit when your duty is finished.</li>
+        </ul>
+        <p>If you lose signal mid-duty, submit when you're back online — the form works offline and will sync automatically.</p>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">🚗</span>Vehicle Shift (Crew Sign-On)</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>This manages the live crew on the vehicle for each operational shift.</p>
+        <ul>
+          <li><strong>Starting a shift:</strong> The first person to sign on starts the shift. Enter your name, role (driver, observer, or lead responder), and tap Sign On.</li>
+          <li><strong>Joining a shift:</strong> If a shift is already active, tap to join it with your role.</li>
+          <li><strong>Ending the shift:</strong> The last person to sign off ends the shift automatically.</li>
+        </ul>
+        <p>The active crew is shown on the compliance wallboard in real time.</p>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">✅</span>Vehicle Daily Inspection (VDI)</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>Complete a VDI each time you take the vehicle out. It covers 49 checks across 4 sections.</p>
+        <ul>
+          <li>Tap <strong>All OK</strong> on a section to mark all items in it as passed.</li>
+          <li>Tap any individual item to toggle it if something needs flagging.</li>
+          <li>Record <strong>fuel level</strong> (0–8 bars) and <strong>oil level</strong> (0–4 bars) using the sliders.</li>
+          <li>Any item marked as failed will automatically create a defect entry.</li>
+        </ul>
+        <p>Submit when you've completed the check. You don't need to be online — it'll sync when you reconnect.</p>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">📋</span>Monthly Load List Check</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>A monthly check of all equipment on the vehicle, based on WMAS Appendix 2 (~75 items).</p>
+        <ul>
+          <li>Tap an item to mark it as present and checked.</li>
+          <li>For items with expiry dates (e.g. medications, consumables), expand the item and enter the <strong>month and year</strong> it expires.</li>
+          <li>Items expiring within 3 months show in amber; within 1 month in red.</li>
+          <li>Work through all sections and submit when complete.</li>
+        </ul>
+        <p><strong>On mobile:</strong> Tap the item name to toggle it — use the expiry dropdowns separately to enter dates without accidentally toggling the item.</p>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">📄</span>Mileage &amp; Incident Claims</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>Submit mileage claims for WMAS reimbursement after attending incidents.</p>
+        <ul>
+          <li>Enter the incident date, WMAS incident number (if known), start and end mileage, and any notes.</li>
+          <li>Submit after each incident, or batch multiple at once.</li>
+        </ul>
+        <p>Your coordinator can export all claims as a CSV for submission to WMAS.</p>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">⚠️</span>Defect Register</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>Report any vehicle or equipment defects you find.</p>
+        <ul>
+          <li>Choose whether it's a <strong>vehicle</strong> or <strong>equipment</strong> defect.</li>
+          <li>Describe the defect clearly and submit.</li>
+          <li>If you spot the same defect that's already been reported, re-report it — this bumps the timestamp so coordinators know it's still outstanding.</li>
+        </ul>
+        <p>Coordinators and compliance officers can mark defects as resolved with a note. Resolved defects are hidden by default but can be shown with the toggle.</p>
+      </div>
+    </div>
+
+    <div class="help-section" id="help-fire-safety">
+      <div class="help-section-header">
+        <span><span class="help-icon">🔔</span>Fire Safety Checks</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>Three checks to keep the base compliant with fire safety regulations:</p>
+        <ul>
+          <li><strong>Fire Alarm Test</strong> — weekly. Activate each call point in turn and confirm the panel responds. Record any faults.</li>
+          <li><strong>Emergency Lighting Test</strong> — monthly. Simulate a mains failure (press the test button on each fitting) and confirm all emergency lights activate. Record any that fail.</li>
+          <li><strong>Fire Extinguisher Check</strong> — annual. Inspect all extinguishers for weight, pressure, damage, and valid service date. Only Fire Safety Officers and coordinators can submit this check.</li>
+        </ul>
+        <p>Results are visible to coordinators in the Admin → Fire Safety tab.</p>
+      </div>
+    </div>
+
+    <div class="help-section" id="help-training">
+      <div class="help-section-header">
+        <span><span class="help-icon">📚</span>Training Log</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>Record your training sessions to maintain a personal log.</p>
+        <ul>
+          <li>Enter the date, type of training (e.g. CPR refresher, scenario training, online module), duration, and any notes.</li>
+          <li>Your entries are visible to your coordinator.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">📅</span>Availability / Rota</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>Mark periods when you are <strong>unavailable</strong> to respond.</p>
+        <ul>
+          <li>Select the date range and reason (holiday, work, other).</li>
+          <li>Your unavailability is visible to your coordinator when planning the rota.</li>
+          <li>Vehicle unavailability (e.g. service, maintenance) is shown as a red banner across the affected dates.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">📺</span>Compliance Wallboard</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>A display page designed for a shared screen or tablet in the base, showing at a glance:</p>
+        <ul>
+          <li>Vehicle compliance status: MOT, road tax, service, insurance, deep clean — shown as green / amber / red cards.</li>
+          <li>Who is currently on duty.</li>
+          <li>Incident statistics: today, this month, this year, and duty hours this month.</li>
+        </ul>
+        <p>Access via <strong>/wallboard.html</strong> using the 4-digit PIN set by your coordinator. The page refreshes automatically every 5 minutes.</p>
+        <p>The wallboard doesn't require a user login — the PIN is all that's needed.</p>
+      </div>
+    </div>
+
+    <div class="help-section">
+      <div class="help-section-header">
+        <span><span class="help-icon">📶</span>Offline Use</span>
+        <i class="help-chevron">▼</i>
+      </div>
+      <div class="help-section-body">
+        <p>The app is designed to work without an internet connection.</p>
+        <ul>
+          <li>All forms can be submitted offline — they're queued locally and sync automatically when you reconnect.</li>
+          <li>The badge at the top of the screen shows how many submissions are waiting to sync.</li>
+          <li>You'll see a toast notification when the app comes back online and syncs your data.</li>
+        </ul>
+        <p><strong>Install the app</strong> (Add to Home Screen) to make it available even with no signal. This is recommended for all responders.</p>
+      </div>
+    </div>
+
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/help.js"></script>
+</body>
+</html>
