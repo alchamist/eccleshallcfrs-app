@@ -3,6 +3,7 @@ name: Deploy secondary CFR groups
 on:
   push:
     branches: [master]
+  workflow_dispatch:
 
 jobs:
   deploy-lichfield:
@@ -11,8 +12,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Use Lichfield wrangler config
+        run: cp wrangler.lichfield.toml wrangler.toml
+
       - name: Deploy to lichfieldcfrs-app
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy . --project-name lichfieldcfrs-app --config wrangler.lichfield.toml
+          command: pages deploy . --project-name lichfieldcfrs-app
