@@ -217,27 +217,33 @@ async function loadUsers() {
       return;
     }
 
-    list.innerHTML = users.map(u => `
-      <div class="card" style="margin-bottom:10px; padding:14px;">
-        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
-          <div style="flex:1; min-width:0;">
-            <div style="font-weight:600; font-size:15px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-              ${u.name}
-              <span class="badge ${u.active ? 'badge-green' : 'badge-grey'}">${u.active ? 'Active' : 'Disabled'}</span>
+    list.innerHTML = users.map(u => {
+      const isSupport = (u.roles || []).includes('support');
+      const roleLabel = isSupport
+        ? '<span class="badge" style="background:#7c3aed;color:#fff;">Support</span>'
+        : `<span class="badge ${u.active ? 'badge-green' : 'badge-grey'}">${u.active ? 'Active' : 'Disabled'}</span>`;
+      const roleText  = (u.roles || []).filter(r => r !== 'support').join(', ') || '—';
+      const actions   = isSupport
+        ? '<span style="font-size:12px;color:var(--text-muted);align-self:center;">Managed externally</span>'
+        : `<button class="btn btn-sm btn-ghost" onclick="openEditModal('${u.access_key}')">Edit</button>
+           ${u.active
+             ? `<button class="btn btn-sm btn-ghost" style="color:var(--red);" onclick="toggleUser('${u.access_key}', false)">Disable</button>`
+             : `<button class="btn btn-sm btn-success" onclick="toggleUser('${u.access_key}', true)">Enable</button>`}`;
+      return `
+        <div class="card" style="margin-bottom:10px; padding:14px;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:600; font-size:15px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                ${u.name} ${roleLabel}
+              </div>
+              <div style="font-size:13px; color:var(--text-muted); margin-top:3px;">
+                ${isSupport ? 'External support access' : roleText}${u.prf_number ? ` · PRF ${u.prf_number}` : ''}
+              </div>
             </div>
-            <div style="font-size:13px; color:var(--text-muted); margin-top:3px;">
-              ${(u.roles || []).join(', ')}${u.prf_number ? ` · PRF ${u.prf_number}` : ''}
-            </div>
+            <div style="display:flex; gap:6px; flex-shrink:0; align-items:center;">${actions}</div>
           </div>
-          <div style="display:flex; gap:6px; flex-shrink:0;">
-            <button class="btn btn-sm btn-ghost" onclick="openEditModal('${u.access_key}')">Edit</button>
-            ${u.active
-              ? `<button class="btn btn-sm btn-ghost" style="color:var(--red);" onclick="toggleUser('${u.access_key}', false)">Disable</button>`
-              : `<button class="btn btn-sm btn-success" onclick="toggleUser('${u.access_key}', true)">Enable</button>`
-            }
-          </div>
-        </div>
-      </div>`).join('');
+        </div>`;
+    }).join('');
   } catch (e) {
     list.innerHTML = `<div class="alert alert-danger"><span>⚠</span>${e.message}</div>`;
   }

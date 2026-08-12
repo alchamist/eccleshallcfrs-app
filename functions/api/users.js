@@ -112,6 +112,11 @@ export async function onRequestPatch({ request, env, data }) {
   const user = await env.CFR_USERS.get(`user:${access_key}`, { type: 'json' });
   if (!user) return Response.json({ error: 'User not found' }, { status: 404 });
 
+  // Support accounts are managed via wrangler only — not through the app UI
+  if (user.roles?.includes('support') && !data.user._is_support) {
+    return Response.json({ error: 'Support accounts cannot be modified here.' }, { status: 403 });
+  }
+
   if (regenerate_key) {
     const newKey = generateKey(user.prf_number);
     const updated = { ...user, access_key: newKey, updated_at: new Date().toISOString(), updated_by: data.user.id };

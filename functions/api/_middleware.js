@@ -36,7 +36,13 @@ export async function onRequest(context) {
   // Backfill access_key if absent (legacy accounts created without this field)
   if (!user.access_key) user.access_key = key;
 
-  data.user = user;
-  data.key  = key;
+  // Support role gets full coordinator-level access everywhere without
+  // needing to update every individual endpoint's role check.
+  if (user.roles?.includes('support') && !user.roles.includes('coordinator')) {
+    data.user = { ...user, roles: [...user.roles, 'coordinator'], _is_support: true };
+  } else {
+    data.user = user;
+  }
+  data.key = key;
   return next();
 }

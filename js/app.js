@@ -12,7 +12,7 @@ function isLoggedIn() { return !!(getAccessKey() && getUser()); }
 function hasRole(role) {
   const user = getUser();
   if (!user?.roles) return false;
-  if (user.roles.includes('coordinator')) return true; // coordinator has all access
+  if (user.roles.includes('coordinator') || user.roles.includes('support')) return true;
   return user.roles.includes(role);
 }
 
