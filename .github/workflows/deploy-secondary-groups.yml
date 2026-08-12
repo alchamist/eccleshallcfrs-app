@@ -21,4 +21,4 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: 91e87a1af94c50755b19f07943df567c
         run: |
           cp wrangler.lichfield.toml wrangler.toml
-          wrangler pages deploy . --project-name lichfieldcfrs-app --account-id 91e87a1af94c50755b19f07943df567c
+          wrangler pages deploy . --project-name lichfieldcfrs-app
