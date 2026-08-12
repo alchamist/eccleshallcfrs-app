@@ -12,6 +12,8 @@ let _users    = [];
 window.addEventListener('load', () => {
   if (!CFR.hasFeature('fire_safety')) {
     document.querySelector('[data-tab="fire-safety"]')?.classList.add('hidden');
+    document.getElementById('role-fire-safety')?.closest('label')?.classList.add('hidden');
+    document.getElementById('edit-role-fire-safety')?.closest('label')?.classList.add('hidden');
   }
   if (!CFR.hasFeature('training')) {
     document.querySelector('[data-tab="training"]')?.classList.add('hidden');

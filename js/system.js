@@ -9,9 +9,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function load() {
     try {
-      const data = await CFR.apiGet('/api/config/features');
-      document.getElementById('feat-fire-safety').checked = data.features.fire_safety !== false;
-      document.getElementById('feat-training').checked    = data.features.training    !== false;
+      const [featData, userData] = await Promise.all([
+        CFR.apiGet('/api/config/features'),
+        CFR.apiGet('/api/users'),
+      ]);
+
+      document.getElementById('feat-fire-safety').checked = featData.features.fire_safety !== false;
+      document.getElementById('feat-training').checked    = featData.features.training    !== false;
+
+      const hasFSO = (userData.users || []).some(u => u.active && u.roles?.includes('fire_safety_officer'));
+      if (hasFSO) {
+        const toggle = document.getElementById('feat-fire-safety');
+        toggle.disabled = true;
+        toggle.closest('label').style.opacity = '0.4';
+        document.getElementById('fire-safety-locked-msg').classList.remove('hidden');
+      }
     } catch (e) {
       CFR.toast('Failed to load settings: ' + e.message, 'error');
     }
