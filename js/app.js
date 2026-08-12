@@ -244,7 +244,6 @@ function buildNav() {
     { href: '/vehicle-shift.html',       icon: '🚗', label: 'Shift', priority: true  },
     { href: '/duty-hours.html',          icon: '🕐', label: 'Duty' },
     { href: '/vehicle-inspection.html',  icon: '✅', label: 'VDI', priority: true    },
-    { href: '/training.html',            icon: '📚', label: 'Training' },
     { href: '/mileage-claim.html',       icon: '📄', label: 'Claim'  },
     { href: '/defects.html',             icon: '⚠️', label: 'Faults' },
   ];
