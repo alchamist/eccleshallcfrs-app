@@ -238,6 +238,9 @@ function buildNav() {
   const nav = document.getElementById('bottom-nav');
   if (!nav) return;
 
+  // Remove any stale More menu from a previous buildNav call
+  document.getElementById('nav-more-menu')?.remove();
+
   const user  = getUser();
   const links = [
     { href: '/dashboard.html',          icon: '🏠', label: 'Home', priority: true },
@@ -291,8 +294,8 @@ function buildNav() {
     moreDiv.style.cssText = 'position:fixed; bottom:60px; right:0; background:white; border-top:1px solid var(--border); box-shadow:0 -2px 8px rgba(0,0,0,0.1); display:none; width:100%; max-height:300px; overflow-y:auto; z-index:1000;';
     moreDiv.innerHTML = otherLinks.map(l => {
       const active = cur === l.href || cur.endsWith(l.href.replace('/', ''));
-      return `<a href="${l.href}" class="nav-item${active ? ' active' : ''}" style="display:flex; width:100%; text-align:left; padding:12px 16px; border-bottom:1px solid var(--border); gap:12px;">
-        <span class="nav-icon">${l.icon}</span>
+      return `<a href="${l.href}" class="nav-item${active ? ' active' : ''}" style="display:flex; flex-direction:row; align-items:center; width:100%; padding:12px 16px; border-bottom:1px solid var(--border); gap:12px; font-size:14px;">
+        <span class="nav-icon" style="font-size:20px; width:28px; text-align:center;">${l.icon}</span>
         <span>${l.label}</span>
       </a>`;
     }).join('');
