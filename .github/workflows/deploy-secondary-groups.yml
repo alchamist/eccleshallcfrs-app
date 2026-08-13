@@ -1,24 +1,33 @@
-name: Deploy secondary CFR groups
+name: Deploy all CFR groups
 
 on:
   push:
     branches: [master]
   workflow_dispatch:
 
+env:
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  CLOUDFLARE_ACCOUNT_ID: 91e87a1af94c50755b19f07943df567c
+
 jobs:
+  deploy-eccleshall:
+    name: Deploy Eccleshall CFRs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Wrangler
+        run: npm install -g wrangler
+      - name: Deploy to eccleshallcfrs-app
+        run: wrangler pages deploy . --project-name eccleshallcfrs-app
+
   deploy-lichfield:
     name: Deploy Lichfield CFRs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install Wrangler
         run: npm install -g wrangler
-
       - name: Deploy to lichfieldcfrs-app
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: 91e87a1af94c50755b19f07943df567c
         run: |
           cp wrangler.lichfield.toml wrangler.toml
           wrangler pages deploy . --project-name lichfieldcfrs-app

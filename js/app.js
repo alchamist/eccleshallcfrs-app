@@ -268,7 +268,7 @@ function buildNav() {
     links.push({ href: '/coordinator.html', icon: '⚙️', label: 'Admin', priority: true });
   }
   if (hasRole('compliance'))  links.push({ href: '/compliance.html',  icon: '📋', label: 'Comply' });
-  if (hasRole('coordinator')) links.push({ href: '/system.html',      icon: '🔧', label: 'System' });
+  if (user?.roles?.includes('support')) links.push({ href: '/system.html', icon: '🔧', label: 'System' });
   links.push({ href: '/help.html', icon: '❓', label: 'Help' });
 
   const cur = location.pathname;

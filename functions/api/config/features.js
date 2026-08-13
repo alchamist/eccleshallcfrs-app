@@ -6,8 +6,8 @@ export async function onRequestGet({ env }) {
 }
 
 export async function onRequestPost({ request, env, data }) {
-  if (!data.user.roles?.includes('coordinator')) {
-    return Response.json({ error: 'Coordinator role required' }, { status: 403 });
+  if (!data.user._is_support) {
+    return Response.json({ error: 'Support role required' }, { status: 403 });
   }
 
   let body;
