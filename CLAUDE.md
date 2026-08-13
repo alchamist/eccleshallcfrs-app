@@ -9,11 +9,11 @@ PWA for Eccleshall Community First Responders (RC0681). Replaces Google Forms. V
 - **API:** Cloudflare Pages Functions — one file per route under `functions/api/`
 - **Storage:** Cloudflare Workers KV — two namespaces: `CFR_USERS`, `CFR_DATA`
 - **Secrets:** `DVLA_API_KEY` stored as Cloudflare Pages environment secret (never in code)
-- **Service worker:** `sw.js` — bump `CACHE` version string on every deploy to force device updates (currently `cfr-v16`)
+- **Service worker:** `sw.js` — bump `CACHE` version string on every deploy to force device updates (currently `cfr-v22`)
 
 ## Deployment
 
-Push to `master` → Cloudflare Pages auto-deploys Eccleshall. A GitHub Action (`deploy-secondary-groups.yml`) also fires and deploys all secondary groups (currently Lichfield CFRs) using their own wrangler config files.
+Push to `master` → GitHub Action (`.github/workflows/deploy-secondary-groups.yml`) deploys **all groups in parallel**: Eccleshall (using `wrangler.toml` directly) and each secondary group (file-swapping its own `wrangler.{slug}.toml`). No Cloudflare dashboard GitHub integration needed — the Action handles everything.
 
 ## Multi-group deployment
 
@@ -29,63 +29,51 @@ This single codebase serves multiple CFR groups, each with their own Cloudflare 
 ### How KV bindings work (critical)
 
 Cloudflare Pages treats `wrangler.toml` as authoritative for KV bindings on every deploy:
-- `wrangler.toml` has Eccleshall's KV IDs → Eccleshall always gets the right namespaces via GitHub auto-deploy
-- **Secondary groups must NOT be in `wrangler.toml`** — the GitHub Action deploys them by copying their own `wrangler.{group}.toml` over `wrangler.toml` before running `wrangler pages deploy`
-- Do NOT add KV IDs for secondary groups to the main `wrangler.toml` (breaks everything)
-- Do NOT re-run old GitHub Action jobs — each push auto-triggers a fresh run
+- `wrangler.toml` always holds Eccleshall's KV IDs — the GitHub Action uses it directly
+- Secondary groups each have their own `wrangler.{slug}.toml`; the Action file-swaps it before deploying
+- Do NOT add secondary group KV IDs to the main `wrangler.toml`
+- **Never manually run `wrangler pages deploy` while `wrangler.toml` is in a swapped state** — it will wire the wrong KV to Eccleshall
 
-### Adding a new CFR group (step by step)
+### Adding a new CFR group (automated — preferred)
 
-1. **Create KV namespaces** (Cloudflare dashboard → Workers & Pages → KV, or via wrangler):
-   ```
-   wrangler kv namespace create "NEWGROUP_CFR_USERS" --remote
-   wrangler kv namespace create "NEWGROUP_CFR_DATA" --remote
-   ```
-   Note the namespace IDs.
+Run the setup script from the repo root. It handles steps 1–4 and 6 automatically:
 
-2. **Create Pages project** (Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → `alchamist/eccleshallcfrs-app` branch `master`). Set project name e.g. `newgroupcfrs-app`. No build command needed.
+```bash
+./scripts/new-group.sh <slug> "<Scheme Name>" <CALLSIGN> "<Coordinator Name>" <prf_number>
+# Example:
+./scripts/new-group.sh cannock "Cannock CFRs" RC0999 "Jane Smith" 9001
+```
 
-3. **Create `wrangler.newgroup.toml`** in project root:
-   ```toml
-   name = "newgroupcfrs-app"
-   compatibility_date = "2024-09-23"
-   pages_build_output_dir = "."
+The script:
+1. Creates CFR_USERS and CFR_DATA KV namespaces via wrangler
+2. Generates `wrangler.<slug>.toml`
+3. Seeds `config:vehicle` KV key
+4. Creates the coordinator user (access key `cfr-CORD-0001-INIT`, roles: coordinator + support)
+5. Adds the deploy job to the GitHub Action
 
-   [[kv_namespaces]]
-   binding = "CFR_USERS"
-   id = "<NEWGROUP_CFR_USERS namespace ID>"
+Then do the two remaining manual steps it prints:
+- **Create the Pages project** in Cloudflare dashboard → Workers & Pages → Create → Pages → Connect to Git → repo `alchamist/eccleshallcfrs-app`, branch `master`, name `{slug}cfrs-app`, no build command
+- **Add DVLA_API_KEY secret** → Pages project → Settings → Environment Variables (same key as other projects)
 
-   [[kv_namespaces]]
-   binding = "CFR_DATA"
-   id = "<NEWGROUP_CFR_DATA namespace ID>"
-   ```
+Finally commit and push:
+```bash
+git add wrangler.<slug>.toml .github/workflows/deploy-secondary-groups.yml
+git commit -m "Add <Scheme Name> group"
+git push
+```
+The push triggers the Action which deploys all groups including the new one.
 
-4. **Add deploy step to `.github/workflows/deploy-secondary-groups.yml`**:
-   ```yaml
-   - name: Deploy to newgroupcfrs-app
-     env:
-       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-       CLOUDFLARE_ACCOUNT_ID: 91e87a1af94c50755b19f07943df567c
-     run: |
-       cp wrangler.newgroup.toml wrangler.toml
-       wrangler pages deploy . --project-name newgroupcfrs-app
-   ```
+### Adding a new CFR group (manual — fallback)
 
-5. **Write initial KV data** — the new site needs a `config:vehicle` entry or it will show "Eccleshall CFR" as fallback:
-   ```
-   wrangler kv key put "config:vehicle" '{"scheme_name":"New Group CFRs","callsign":"RCXXXX","vrm":"","wallboard_pin":"","tread_warn_mm":3}' --namespace-id <CFR_DATA namespace ID> --remote
-   ```
+If the script can't run (Windows without bash, etc.):
 
-6. **Create initial coordinator user**:
-   ```
-   wrangler kv key put "users:index" '["cfr-word-word-1234"]' --namespace-id <CFR_USERS namespace ID> --remote
-   wrangler kv key put "user:cfr-word-word-1234" '{"id":"<uuid>","access_key":"cfr-word-word-1234","name":"Coordinator Name","roles":["coordinator"],"active":true}' --namespace-id <CFR_USERS namespace ID> --remote
-   ```
-   Use `crypto.randomUUID()` in browser console for the UUID.
-
-7. **Add DVLA_API_KEY secret** to the new Pages project in the Cloudflare dashboard (can reuse the same key — it's account-level).
-
-8. **Bump `sw.js` CACHE version** and push.
+1. Create KV namespaces: `wrangler kv namespace create "SLUG_CFR_USERS" --remote` and `..._CFR_DATA`
+2. Create `wrangler.slug.toml` (copy from `wrangler.lichfield.toml`, update name and KV IDs)
+3. Seed config: `wrangler kv key put "config:vehicle" '{...}' --namespace-id <DATA_ID> --remote`
+4. Create coordinator: `wrangler kv key put "user:cfr-CORD-0001-INIT" '{...}' --namespace-id <USERS_ID> --remote` and seed `users:index`
+5. Add a `deploy-{slug}` job to the GitHub Action (parallel job, same pattern as `deploy-lichfield`)
+6. Create Pages project and add DVLA_API_KEY (manual, dashboard only)
+7. Commit and push — Action deploys everything
 
 ### The `support` role
 

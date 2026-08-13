@@ -252,32 +252,18 @@
 
     <div id="tab-vehicle" class="hidden">
 
-      <!-- Scheme settings -->
+      <!-- Vehicle settings -->
       <div class="card">
-        <p class="card-title">Scheme Settings</p>
-        <div class="form-group">
-          <label class="form-label">Scheme Name</label>
-          <input id="cfg-scheme-name" class="form-input" type="text" placeholder="e.g. Eccleshall CFR">
-          <p class="form-hint">Displayed throughout the app and on the login screen.</p>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Vehicle Call Sign</label>
-          <input id="cfg-callsign" class="form-input" type="text" placeholder="e.g. RC0681">
-        </div>
+        <p class="card-title">Vehicle Settings</p>
         <div class="form-group">
           <label class="form-label">Vehicle Registration (VRM)</label>
           <input id="cfg-vrm" class="form-input" type="text" placeholder="e.g. AB21XYZ" style="text-transform:uppercase;">
           <p class="form-hint">Used to pull live MOT and road tax dates from DVLA automatically.</p>
         </div>
-        <div class="form-group">
+        <div class="form-group mb-0">
           <label class="form-label">Tyre Tread Warning Threshold (mm)</label>
           <input id="cfg-tread" class="form-input" type="number" min="1.6" max="8" step="0.1" placeholder="e.g. 3">
           <p class="form-hint">A warning will be shown on the VDI when any tyre falls below this value. Legal minimum is 1.6mm.</p>
-        </div>
-        <div class="form-group mb-0">
-          <label class="form-label">Wallboard PIN</label>
-          <input id="cfg-wallboard-pin" class="form-input" type="text" inputmode="numeric" maxlength="8" placeholder="e.g. 1234">
-          <p class="form-hint">PIN for the compliance wallboard display. Leave blank to disable wallboard access.</p>
         </div>
         <hr class="divider">
         <button class="btn btn-primary btn-block" onclick="saveVehicleSettings()">Save Settings</button>

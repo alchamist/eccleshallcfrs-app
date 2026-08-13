@@ -16,26 +16,45 @@
 
     <div class="card" style="margin-bottom:16px;">
       <p class="card-title">Group Identity</p>
-      <p class="card-subtitle">How this group appears across the app and wallboard.</p>
 
-      <div class="form-group">
-        <label class="form-label" for="cfg-scheme-name">Scheme Name</label>
-        <input id="cfg-scheme-name" class="form-input" type="text" placeholder="e.g. Eccleshall CFR">
-      </div>
-      <div class="form-row">
-        <div class="form-group mb-0">
+      <!-- Support-only: scheme name and callsign editable -->
+      <div id="identity-editable" class="hidden">
+        <p class="card-subtitle">How this group appears across the app and wallboard.</p>
+        <div class="form-group">
+          <label class="form-label" for="cfg-scheme-name">Scheme Name</label>
+          <input id="cfg-scheme-name" class="form-input" type="text" placeholder="e.g. Eccleshall CFR">
+        </div>
+        <div class="form-group">
           <label class="form-label" for="cfg-callsign">Callsign</label>
           <input id="cfg-callsign" class="form-input" type="text" placeholder="e.g. RC0681">
         </div>
-        <div class="form-group mb-0">
-          <label class="form-label" for="cfg-wallboard-pin">Wallboard PIN</label>
-          <input id="cfg-wallboard-pin" class="form-input" type="text" inputmode="numeric" maxlength="8" placeholder="4–8 digits">
+      </div>
+
+      <!-- Coordinator view: scheme name and callsign read-only -->
+      <div id="identity-readonly" class="hidden">
+        <p class="card-subtitle">Scheme name and callsign can only be changed by the platform support user.</p>
+        <div class="form-group">
+          <label class="form-label">Scheme Name</label>
+          <p id="ro-scheme-name" style="font-size:15px; font-weight:600; padding:4px 0;"></p>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Callsign</label>
+          <p id="ro-callsign" style="font-size:15px; font-weight:600; padding:4px 0;"></p>
         </div>
       </div>
-      <button id="save-identity-btn" class="btn btn-primary btn-block" style="margin-top:16px;">Save Identity</button>
+
+      <!-- Wallboard PIN — editable by coordinator and support -->
+      <div class="form-group mb-0">
+        <label class="form-label" for="cfg-wallboard-pin">Wallboard PIN</label>
+        <input id="cfg-wallboard-pin" class="form-input" type="text" inputmode="numeric" maxlength="8" placeholder="4–8 digits">
+        <p class="form-hint">PIN for the compliance wallboard display. Leave blank to disable wallboard access.</p>
+      </div>
+
+      <button id="save-identity-btn" class="btn btn-primary btn-block" style="margin-top:16px;">Save</button>
     </div>
 
-    <form id="features-form">
+    <!-- Features — support only -->
+    <form id="features-form" class="hidden">
       <div class="card">
         <p class="card-title">Features</p>
         <p class="card-subtitle">Enable or disable optional features. Changes take effect immediately for all users.</p>
