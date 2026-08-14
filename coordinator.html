@@ -31,6 +31,7 @@
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="vehicle"      onclick="switchTab('vehicle')">Vehicle</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="audit"        onclick="switchTab('audit')">Audit</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="training"     onclick="switchTab('training')">Training</button>
+      <button class="btn btn-ghost btn-sm tab-btn hidden" data-tab="equipment"  onclick="switchTab('equipment')">Equipment</button>
     </div>
 
     <!-- Submissions tab -->
@@ -159,6 +160,9 @@
             </label>
             <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
               <input type="checkbox" id="role-fire-safety"> Fire Safety Officer
+            </label>
+            <label id="role-defib-label" style="display:flex; gap:6px; align-items:center; font-size:14px;" class="hidden">
+              <input type="checkbox" id="role-defib-manager"> Defib Manager
             </label>
           </div>
         </div>
@@ -451,6 +455,42 @@
       </div>
     </div>
 
+    <!-- Equipment tab -->
+    <div id="tab-equipment" class="hidden">
+
+      <!-- Expiry / fault report -->
+      <div class="card" style="margin-bottom:16px;">
+        <p class="card-title">Equipment Report</p>
+        <p class="card-subtitle">Devices with open faults or consumables expiring within 30 days.</p>
+        <div id="equipment-report">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+      </div>
+
+      <!-- Defibs registry -->
+      <div class="card" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <p class="card-title" style="margin:0;">Defibrillators</p>
+          <button class="btn btn-primary btn-sm" onclick="openDefibModal()">+ Add</button>
+        </div>
+        <div id="defibs-registry-list">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+      </div>
+
+      <!-- Bleed kits registry -->
+      <div class="card">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+          <p class="card-title" style="margin:0;">Bleed Kits</p>
+          <button class="btn btn-primary btn-sm" onclick="openBleedKitModal()">+ Add</button>
+        </div>
+        <div id="bleed-kits-registry-list">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+      </div>
+
+    </div>
+
   </main>
 
   <nav id="bottom-nav" class="bottom-nav"></nav>
@@ -484,6 +524,9 @@
           <label style="display:flex; gap:6px; align-items:center; font-size:14px;">
             <input type="checkbox" id="edit-role-fire-safety"> Fire Safety Officer
           </label>
+          <label id="edit-role-defib-label" style="display:flex; gap:6px; align-items:center; font-size:14px;" class="hidden">
+            <input type="checkbox" id="edit-role-defib-manager"> Defib Manager
+          </label>
         </div>
       </div>
       <hr class="divider">
@@ -514,6 +557,105 @@
             <div style="font-size:12px; margin-top:6px; opacity:.8;">Shown once only.</div>
           </div>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit defib modal -->
+  <div id="defib-modal" class="modal-overlay hidden" onclick="closeDefibModal(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <p class="modal-title" id="defib-modal-title">Add Defibrillator</p>
+      <input type="hidden" id="defib-modal-uuid">
+      <div class="form-group">
+        <label class="form-label" for="defib-group-id">Group ID <span class="req">*</span></label>
+        <input id="defib-group-id" class="form-input" type="text" placeholder="e.g. DEF001">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="defib-location">Location <span class="req">*</span></label>
+        <input id="defib-location" class="form-input" type="text" placeholder="e.g. Village Hall, High St">
+      </div>
+      <div class="form-row">
+        <div class="form-group mb-0">
+          <label class="form-label" for="defib-make">Make</label>
+          <input id="defib-make" class="form-input" type="text" placeholder="e.g. Philips">
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label" for="defib-model">Model</label>
+          <input id="defib-model" class="form-input" type="text" placeholder="e.g. HeartStart FRx">
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="defib-serial">Serial Number</label>
+        <input id="defib-serial" class="form-input" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="defib-lock-code">Case Lock Code</label>
+        <input id="defib-lock-code" class="form-input" type="text" placeholder="Cabinet code">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="defib-install-date">Installation Date</label>
+        <input id="defib-install-date" class="form-input" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="defib-responsible">Responsible Person</label>
+        <input id="defib-responsible" class="form-input" type="text">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="defib-contact">Contact Number</label>
+        <input id="defib-contact" class="form-input" type="tel">
+      </div>
+      <div class="form-group mb-0">
+        <label style="display:flex; gap:8px; align-items:center; font-size:14px;">
+          <input type="checkbox" id="defib-on-circuit"> Registered on The Circuit (national AED register)
+        </label>
+      </div>
+      <hr class="divider">
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-ghost flex-1" onclick="closeDefibModal()">Cancel</button>
+        <button class="btn btn-primary flex-1" onclick="saveDefib()">Save</button>
+      </div>
+      <div id="defib-deactivate-row" class="hidden" style="margin-top:8px;">
+        <hr class="divider">
+        <button class="btn btn-ghost btn-block" style="color:var(--red);" onclick="deactivateDefib()">Deactivate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add/Edit bleed kit modal -->
+  <div id="bleed-kit-modal" class="modal-overlay hidden" onclick="closeBleedKitModal(event)">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <p class="modal-title" id="bleed-kit-modal-title">Add Bleed Kit</p>
+      <input type="hidden" id="bleed-kit-modal-uuid">
+      <div class="form-group">
+        <label class="form-label" for="bk-group-id">Group ID <span class="req">*</span></label>
+        <input id="bk-group-id" class="form-input" type="text" placeholder="e.g. BK001">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="bk-location">Location <span class="req">*</span></label>
+        <input id="bk-location" class="form-input" type="text" placeholder="e.g. Bus Stop, Market Square">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="bk-lock-code">Cabinet Lock Code</label>
+        <input id="bk-lock-code" class="form-input" type="text" placeholder="Cabinet code">
+      </div>
+      <div class="form-group">
+        <label class="form-label" for="bk-responsible">Responsible Person</label>
+        <input id="bk-responsible" class="form-input" type="text">
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label" for="bk-contact">Contact Number</label>
+        <input id="bk-contact" class="form-input" type="tel">
+      </div>
+      <hr class="divider">
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-ghost flex-1" onclick="closeBleedKitModal()">Cancel</button>
+        <button class="btn btn-primary flex-1" onclick="saveBleedKit()">Save</button>
+      </div>
+      <div id="bleed-kit-deactivate-row" class="hidden" style="margin-top:8px;">
+        <hr class="divider">
+        <button class="btn btn-ghost btn-block" style="color:var(--red);" onclick="deactivateBleedKit()">Deactivate</button>
       </div>
     </div>
   </div>

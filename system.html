@@ -83,6 +83,33 @@
             <span class="toggle-slider"></span>
           </label>
         </div>
+
+        <div class="divider"></div>
+
+        <div class="toggle-row">
+          <div class="toggle-info">
+            <div class="toggle-label">Defib &amp; Bleed Kit Tracker</div>
+            <div class="toggle-desc">Register community defibrillators and public bleed kits, record checks, log faults, and report on expiring consumables. Introduces the Defib Manager role.</div>
+            <div id="defib-locked-msg" class="form-hint hidden" style="color:var(--amber);">Remove all Defib Manager role assignments before disabling.</div>
+          </div>
+          <label class="toggle-switch">
+            <input type="checkbox" id="feat-defib-tracker">
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div id="defib-sub-options" class="hidden" style="padding-left:16px; border-left:2px solid var(--border); margin:4px 0 4px 24px;">
+          <div class="toggle-row" style="padding:8px 0;">
+            <div class="toggle-info">
+              <div class="toggle-label" style="font-weight:500;">Allow Compliance role to view defib report</div>
+              <div class="toggle-desc">Grants users with the Compliance role read-only access to the equipment list and fault/expiry report.</div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="feat-defib-compliance-report">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+        </div>
       </div>
 
       <button type="submit" class="btn btn-primary btn-block">Save Features</button>

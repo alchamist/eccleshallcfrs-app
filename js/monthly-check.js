@@ -1,4 +1,5 @@
 CFR.requireAuth();
+if (!CFR.hasRole('responder')) { location.href = '/dashboard.html'; }
 
 // ── Load list data ────────────────────────────────────────────────────────────
 // Two sections: Response Bag and Scheme Vehicle Load List

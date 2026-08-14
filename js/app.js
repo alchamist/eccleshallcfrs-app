@@ -268,6 +268,14 @@ function buildNav() {
     links.push({ href: '/coordinator.html', icon: '⚙️', label: 'Admin', priority: true });
   }
   if (hasRole('compliance'))  links.push({ href: '/compliance.html',  icon: '📋', label: 'Comply' });
+
+  if (hasFeature('defib_tracker')) {
+    const complianceCanSeeDefibs = hasRole('compliance') && hasFeature('defib_compliance_report');
+    if (hasRole('defib_manager') || hasRole('coordinator') || complianceCanSeeDefibs) {
+      links.push({ href: '/defibs.html', icon: '❤️', label: 'Defibs' });
+    }
+  }
+
   if (hasRole('coordinator') || user?.roles?.includes('support')) links.push({ href: '/system.html', icon: '🔧', label: 'System' });
   links.push({ href: '/help.html', icon: '❓', label: 'Help' });
 

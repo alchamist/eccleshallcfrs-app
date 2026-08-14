@@ -1,5 +1,5 @@
 // Bump this string on every deploy to evict stale caches from users' devices.
-const CACHE = 'cfr-v23';
+const CACHE = 'cfr-v24';
 
 const STATIC = [
   '/index.html',
@@ -32,6 +32,12 @@ const STATIC = [
   '/js/help.js',
   '/system.html',
   '/js/system.js',
+  '/defibs.html',
+  '/js/defibs.js',
+  '/defib-check.html',
+  '/js/defib-check.js',
+  '/bleed-kit-check.html',
+  '/js/bleed-kit-check.js',
   '/manifest.json',
 ];
 

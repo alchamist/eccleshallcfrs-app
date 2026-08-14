@@ -1,4 +1,5 @@
 CFR.requireAuth();
+if (!CFR.hasRole('responder')) { location.href = '/dashboard.html'; }
 
 document.getElementById('claim-date').value  = CFR.todayISO();
 document.getElementById('callout-time').value = CFR.nowTime();

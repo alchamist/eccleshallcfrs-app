@@ -86,6 +86,7 @@ Stored as array in user profile. Current roles:
 - `coordinator` — full admin access
 - `compliance` — read/resolve access for defects and compliance data
 - `fire_safety_officer` — access to fire safety check forms and reports tab in coordinator dashboard
+- `defib_manager` — access to defib/bleed kit checks only; cannot access responder pages (vehicle shift, inspection, mileage, monthly check, availability); CAN access duty hours
 - `support` — cross-group platform admin; middleware injects `coordinator` at runtime
 
 Users can hold multiple roles: `["responder", "fire_safety_officer"]`.
@@ -111,6 +112,12 @@ Users can hold multiple roles: `["responder", "fire_safety_officer"]`.
 - `fire_safety:alarm:{date}:{uuid}` — weekly fire alarm test
 - `fire_safety:lighting:{date}:{uuid}` — monthly emergency lighting test
 - `fire_safety:extinguisher:{date}:{uuid}` — annual fire extinguisher check
+- `defib:{uuid}` — defibrillator device record (group_id, location, make, model, serial, lock code, install date, responsible person, contact, on-circuit, active)
+- `defib:index` — array of all defib UUIDs
+- `defib_check:{date}:{uuid}` — defib check record; metadata: `{ defib_uuid }` for per-device listing
+- `bleed_kit:{uuid}` — bleed kit device record (group_id, location, lock code, responsible person, contact, active)
+- `bleed_kit:index` — array of all bleed kit UUIDs
+- `bleed_kit_check:{date}:{uuid}` — bleed kit check record; metadata: `{ bleed_kit_uuid }` for per-device listing
 
 ## Public endpoints
 
@@ -145,6 +152,9 @@ Users can hold multiple roles: `["responder", "fire_safety_officer"]`.
 | `emergency-lighting-test.html` | Monthly emergency lighting test | responder |
 | `extinguisher-test.html` | Annual fire extinguisher check | fire_safety_officer, coordinator |
 | `compliance.html` | Compliance overview | compliance, coordinator |
+| `defibs.html` | Defib & bleed kit list + report | defib_manager, coordinator, compliance (if defib_compliance_report enabled) |
+| `defib-check.html` | Record a defib check | defib_manager, coordinator |
+| `bleed-kit-check.html` | Record a bleed kit check | defib_manager, coordinator |
 | `coordinator.html` | Admin — users, settings, reports | coordinator, fire_safety_officer |
 | `wallboard.html` | Compliance status display (PIN-only) | public (PIN) |
 

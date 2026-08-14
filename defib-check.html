@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Defib Check — Eccleshall CFR</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="header-logo"><span class="scheme-name">Eccleshall CFR</span> <span class="callsign">RC0681</span></span>
+    <span id="sync-badge" class="sync-indicator"></span>
+  </header>
+
+  <main class="main-content">
+
+    <!-- Device info -->
+    <div class="card" id="device-info" style="margin-bottom:16px;">
+      <div class="loading"><div class="spinner"></div>Loading…</div>
+    </div>
+
+    <!-- Check form -->
+    <div class="card" id="check-form-card" style="margin-bottom:16px;">
+      <p class="card-title">Record Check</p>
+
+      <div class="form-group">
+        <label class="form-label">Defib present? <span class="req">*</span></label>
+        <div style="display:flex; gap:16px; margin-top:4px;">
+          <label style="display:flex; gap:6px; align-items:center;"><input type="radio" name="defib-present" value="yes" checked onchange="togglePresentFields()"> Yes</label>
+          <label style="display:flex; gap:6px; align-items:center;"><input type="radio" name="defib-present" value="no" onchange="togglePresentFields()"> No</label>
+        </div>
+      </div>
+
+      <div id="present-fields">
+        <div class="form-group">
+          <label class="form-label" for="rescue-ready">Rescue ready? <span class="req">*</span></label>
+          <div style="display:flex; gap:16px; margin-top:4px;">
+            <label style="display:flex; gap:6px; align-items:center;"><input type="radio" name="rescue-ready" value="pass" checked> Pass</label>
+            <label style="display:flex; gap:6px; align-items:center;"><input type="radio" name="rescue-ready" value="fail"> Fail</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="prep-kit">Prep kit present? <span class="req">*</span></label>
+          <div style="display:flex; gap:16px; margin-top:4px;">
+            <label style="display:flex; gap:6px; align-items:center;"><input type="radio" name="prep-kit" value="yes" checked> Yes</label>
+            <label style="display:flex; gap:6px; align-items:center;"><input type="radio" name="prep-kit" value="no"> No</label>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="pads-expiry">Pads expiry <span class="req">*</span></label>
+          <input id="pads-expiry" class="form-input" type="month">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="battery-expiry">Battery expiry <span style="color:var(--text-muted);">(optional)</span></label>
+          <input id="battery-expiry" class="form-input" type="month">
+        </div>
+      </div>
+
+      <div class="form-group mb-0">
+        <label class="form-label" for="check-notes">Notes <span style="color:var(--text-muted);">(optional)</span></label>
+        <textarea id="check-notes" class="form-input" rows="2" placeholder="Any additional observations"></textarea>
+      </div>
+
+      <hr class="divider">
+      <button class="btn btn-primary btn-block" onclick="submitCheck()">Submit Check</button>
+      <a href="/defibs.html" class="btn btn-ghost btn-block" style="margin-top:8px;">Cancel</a>
+    </div>
+
+    <!-- Check history -->
+    <div class="card" id="history-card">
+      <p class="card-title">Recent Checks</p>
+      <div id="check-history">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/defib-check.js"></script>
+</body>
+</html>

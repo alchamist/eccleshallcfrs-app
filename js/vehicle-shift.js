@@ -1,4 +1,5 @@
 CFR.requireAuth();
+if (!CFR.hasRole('responder')) { location.href = '/dashboard.html'; }
 
 let currentShift = null;
 let currentShiftKey = null; // KV key for PATCH operations

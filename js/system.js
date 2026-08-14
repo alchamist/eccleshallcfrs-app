@@ -55,21 +55,39 @@ document.addEventListener('DOMContentLoaded', async () => {
   // ── Features (support only) ───────────────────────────────────────────────
 
   if (isSupport) {
+    function syncDefibSubOptions() {
+      const on = document.getElementById('feat-defib-tracker').checked;
+      document.getElementById('defib-sub-options').classList.toggle('hidden', !on);
+    }
+    document.getElementById('feat-defib-tracker').addEventListener('change', syncDefibSubOptions);
+
     async function loadFeatures() {
       try {
         const [featData, userData] = await Promise.all([
           CFR.apiGet('/api/config/features'),
           CFR.apiGet('/api/users'),
         ]);
-        document.getElementById('feat-fire-safety').checked = featData.features.fire_safety !== false;
-        document.getElementById('feat-training').checked    = featData.features.training    !== false;
+        document.getElementById('feat-fire-safety').checked              = featData.features.fire_safety !== false;
+        document.getElementById('feat-training').checked                 = featData.features.training    !== false;
+        document.getElementById('feat-defib-tracker').checked            = featData.features.defib_tracker === true;
+        document.getElementById('feat-defib-compliance-report').checked  = featData.features.defib_compliance_report === true;
+        syncDefibSubOptions();
 
-        const hasFSO = (userData.users || []).some(u => u.active && u.roles?.includes('fire_safety_officer'));
+        const users = userData.users || [];
+        const hasFSO       = users.some(u => u.active && u.roles?.includes('fire_safety_officer'));
+        const hasDefibMgr  = users.some(u => u.active && u.roles?.includes('defib_manager'));
+
         if (hasFSO) {
           const toggle = document.getElementById('feat-fire-safety');
           toggle.disabled = true;
           toggle.closest('label').style.opacity = '0.4';
           document.getElementById('fire-safety-locked-msg').classList.remove('hidden');
+        }
+        if (hasDefibMgr) {
+          const toggle = document.getElementById('feat-defib-tracker');
+          toggle.disabled = true;
+          toggle.closest('label').style.opacity = '0.4';
+          document.getElementById('defib-locked-msg').classList.remove('hidden');
         }
       } catch (e) {
         CFR.toast('Failed to load features: ' + e.message, 'error');
@@ -83,8 +101,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       try {
         await CFR.apiPost('/api/config/features', {
           features: {
-            fire_safety: document.getElementById('feat-fire-safety').checked,
-            training:    document.getElementById('feat-training').checked,
+            fire_safety:              document.getElementById('feat-fire-safety').checked,
+            training:                 document.getElementById('feat-training').checked,
+            defib_tracker:            document.getElementById('feat-defib-tracker').checked,
+            defib_compliance_report:  document.getElementById('feat-defib-compliance-report').checked,
           },
         });
         localStorage.removeItem('cfr_features');

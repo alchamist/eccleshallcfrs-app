@@ -1,4 +1,5 @@
 CFR.requireAuth();
+if (!CFR.hasRole('responder')) { location.href = '/dashboard.html'; }
 
 // ── Checklist data ────────────────────────────────────────────────────────────
 

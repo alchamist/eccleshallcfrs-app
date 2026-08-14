@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Defibs — Eccleshall CFR</title>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="header-logo"><span class="scheme-name">Eccleshall CFR</span> <span class="callsign">RC0681</span></span>
+    <span id="sync-badge" class="sync-indicator"></span>
+  </header>
+
+  <main class="main-content">
+
+    <!-- Report panel (defib_manager, compliance, coordinator) -->
+    <div id="report-panel" class="hidden" style="margin-bottom:16px;">
+      <div class="card" id="report-card">
+        <p class="card-title">⚠ Alerts</p>
+        <div id="report-content">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div style="display:flex; gap:6px; margin-bottom:12px;">
+      <button class="btn btn-primary btn-sm" id="tab-btn-defibs"    onclick="switchTab('defibs')">❤️ Defibs</button>
+      <button class="btn btn-ghost  btn-sm" id="tab-btn-bleed-kits" onclick="switchTab('bleed-kits')">🩸 Bleed Kits</button>
+    </div>
+
+    <!-- Defibs list -->
+    <div id="tab-defibs">
+      <div id="defibs-list">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+    <!-- Bleed kits list -->
+    <div id="tab-bleed-kits" class="hidden">
+      <div id="bleed-kits-list">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+  </main>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/defibs.js"></script>
+</body>
+</html>
