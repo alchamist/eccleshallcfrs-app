@@ -32,6 +32,9 @@
 
     <!-- Defibs list -->
     <div id="tab-defibs">
+      <div id="add-defib-btn-row" class="hidden" style="margin-bottom:10px;">
+        <button class="btn btn-primary btn-sm" onclick="openDefibModal(null)">+ Add Defibrillator</button>
+      </div>
       <div id="defibs-list">
         <div class="loading"><div class="spinner"></div>Loading…</div>
       </div>
@@ -39,12 +42,109 @@
 
     <!-- Bleed kits list -->
     <div id="tab-bleed-kits" class="hidden">
+      <div id="add-bk-btn-row" class="hidden" style="margin-bottom:10px;">
+        <button class="btn btn-primary btn-sm" onclick="openBleedKitModal(null)">+ Add Bleed Kit</button>
+      </div>
       <div id="bleed-kits-list">
         <div class="loading"><div class="spinner"></div>Loading…</div>
       </div>
     </div>
 
   </main>
+
+  <!-- Defib modal -->
+  <div id="defib-modal" class="modal-overlay hidden" onclick="closeDefibModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="defib-modal-title" class="modal-title">Add Defibrillator</h3>
+        <button class="modal-close" onclick="document.getElementById('defib-modal').classList.add('hidden')">✕</button>
+      </div>
+      <input type="hidden" id="defib-modal-uuid">
+      <div class="form-group">
+        <label class="form-label">Group ID / Reference <span class="req">*</span></label>
+        <input id="defib-group-id" class="form-input" placeholder="e.g. ECFR-001">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location <span class="req">*</span></label>
+        <input id="defib-location" class="form-input" placeholder="e.g. Village Hall entrance">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Make</label>
+        <input id="defib-make" class="form-input" placeholder="e.g. Zoll">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Model</label>
+        <input id="defib-model" class="form-input" placeholder="e.g. AED Plus">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Serial Number</label>
+        <input id="defib-serial" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Case Lock Code</label>
+        <input id="defib-lock-code" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Installation Date</label>
+        <input id="defib-install-date" class="form-input" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Responsible Person</label>
+        <input id="defib-responsible" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Contact Number</label>
+        <input id="defib-contact" class="form-input" type="tel">
+      </div>
+      <div class="form-group mb-0">
+        <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+          <input id="defib-on-circuit" type="checkbox">
+          <span>Registered on circuit</span>
+        </label>
+      </div>
+      <hr class="divider">
+      <button class="btn btn-primary btn-block" onclick="saveDefib()">Save</button>
+      <div id="defib-deactivate-row" class="hidden" style="margin-top:8px;">
+        <button class="btn btn-ghost btn-block" style="color:var(--red);" onclick="deactivateDefib()">Deactivate</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bleed kit modal -->
+  <div id="bleed-kit-modal" class="modal-overlay hidden" onclick="closeBleedKitModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="bleed-kit-modal-title" class="modal-title">Add Bleed Kit</h3>
+        <button class="modal-close" onclick="document.getElementById('bleed-kit-modal').classList.add('hidden')">✕</button>
+      </div>
+      <input type="hidden" id="bleed-kit-modal-uuid">
+      <div class="form-group">
+        <label class="form-label">Group ID / Reference <span class="req">*</span></label>
+        <input id="bk-group-id" class="form-input" placeholder="e.g. ECFR-BK-001">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location <span class="req">*</span></label>
+        <input id="bk-location" class="form-input" placeholder="e.g. Car park post">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Cabinet Lock Code</label>
+        <input id="bk-lock-code" class="form-input">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Responsible Person</label>
+        <input id="bk-responsible" class="form-input">
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Contact Number</label>
+        <input id="bk-contact" class="form-input" type="tel">
+      </div>
+      <hr class="divider">
+      <button class="btn btn-primary btn-block" onclick="saveBleedKit()">Save</button>
+      <div id="bleed-kit-deactivate-row" class="hidden" style="margin-top:8px;">
+        <button class="btn btn-ghost btn-block" style="color:var(--red);" onclick="deactivateBleedKit()">Deactivate</button>
+      </div>
+    </div>
+  </div>
 
   <nav class="bottom-nav" id="bottom-nav"></nav>
 

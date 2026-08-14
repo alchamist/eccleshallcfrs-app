@@ -6,6 +6,13 @@ const canCheck    = CFR.hasRole('defib_manager') || CFR.hasRole('coordinator');
 const canReport   = canCheck || (CFR.hasRole('compliance') && CFR.hasFeature('defib_compliance_report'));
 
 let _activeTab = 'defibs';
+let _defibs = [];
+let _bleedKits = [];
+
+if (canCheck) {
+  document.getElementById('add-defib-btn-row').classList.remove('hidden');
+  document.getElementById('add-bk-btn-row').classList.remove('hidden');
+}
 
 function switchTab(tab) {
   _activeTab = tab;
@@ -54,9 +61,10 @@ async function loadDefibs() {
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
   try {
     const { defibs } = await CFR.apiGet('/api/defibs');
+    _defibs = defibs;
     const active = defibs.filter(d => d.active);
     if (!active.length) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">❤️</div><h3>No defibrillators registered</h3><p>Ask your coordinator to add devices.</p></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">❤️</div><h3>No defibrillators registered</h3>${canCheck ? '<p>Use the button above to add the first device.</p>' : '<p>Ask your coordinator to add devices.</p>'}</div>`;
       return;
     }
     el.innerHTML = active.map(d => `
@@ -69,7 +77,10 @@ async function loadDefibs() {
           </div>
           <div style="flex-shrink:0;">${statusChip(d.last_check)}</div>
         </div>
-        ${canCheck ? `<div style="margin-top:10px;"><a href="/defib-check.html?id=${d.uuid}" class="btn btn-primary btn-sm btn-block">Record Check</a></div>` : ''}
+        ${canCheck ? `<div style="display:flex; gap:6px; margin-top:10px;">
+          <a href="/defib-check.html?id=${d.uuid}" class="btn btn-primary btn-sm" style="flex:1;">Record Check</a>
+          <button class="btn btn-ghost btn-sm" onclick="openDefibModal('${d.uuid}')">Edit</button>
+        </div>` : ''}
       </div>`).join('');
   } catch (e) {
     el.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">⚠</span>${e.message}</div>`;
@@ -83,9 +94,10 @@ async function loadBleedKits() {
   el.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
   try {
     const { bleed_kits } = await CFR.apiGet('/api/bleed-kits');
+    _bleedKits = bleed_kits;
     const active = bleed_kits.filter(b => b.active);
     if (!active.length) {
-      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🩸</div><h3>No bleed kits registered</h3><p>Ask your coordinator to add devices.</p></div>`;
+      el.innerHTML = `<div class="empty-state"><div class="empty-state-icon">🩸</div><h3>No bleed kits registered</h3>${canCheck ? '<p>Use the button above to add the first device.</p>' : '<p>Ask your coordinator to add devices.</p>'}</div>`;
       return;
     }
     el.innerHTML = active.map(b => `
@@ -98,7 +110,10 @@ async function loadBleedKits() {
           </div>
           <div style="flex-shrink:0;">${statusChip(b.last_check)}</div>
         </div>
-        ${canCheck ? `<div style="margin-top:10px;"><a href="/bleed-kit-check.html?id=${b.uuid}" class="btn btn-primary btn-sm btn-block">Record Check</a></div>` : ''}
+        ${canCheck ? `<div style="display:flex; gap:6px; margin-top:10px;">
+          <a href="/bleed-kit-check.html?id=${b.uuid}" class="btn btn-primary btn-sm" style="flex:1;">Record Check</a>
+          <button class="btn btn-ghost btn-sm" onclick="openBleedKitModal('${b.uuid}')">Edit</button>
+        </div>` : ''}
       </div>`).join('');
   } catch (e) {
     el.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">⚠</span>${e.message}</div>`;
@@ -162,3 +177,135 @@ if (canReport) loadReport();
 const initTab = new URLSearchParams(location.search).get('tab');
 if (initTab === 'bleed-kits') switchTab('bleed-kits');
 else loadDefibs();
+
+// ── Device management modals (defib_manager + coordinator) ───────────────────
+
+function openDefibModal(uuid) {
+  const d = uuid ? _defibs.find(x => x.uuid === uuid) : null;
+  document.getElementById('defib-modal-title').textContent = d ? 'Edit Defibrillator' : 'Add Defibrillator';
+  document.getElementById('defib-modal-uuid').value        = uuid || '';
+  document.getElementById('defib-group-id').value          = d?.group_id             || '';
+  document.getElementById('defib-location').value          = d?.location             || '';
+  document.getElementById('defib-make').value              = d?.make                 || '';
+  document.getElementById('defib-model').value             = d?.model                || '';
+  document.getElementById('defib-serial').value            = d?.serial_number        || '';
+  document.getElementById('defib-lock-code').value         = d?.case_lock_code       || '';
+  document.getElementById('defib-install-date').value      = d?.installation_date    || '';
+  document.getElementById('defib-responsible').value       = d?.responsible_person   || '';
+  document.getElementById('defib-contact').value           = d?.contact_number       || '';
+  document.getElementById('defib-on-circuit').checked      = d?.registered_on_circuit || false;
+  document.getElementById('defib-deactivate-row').classList.toggle('hidden', !uuid);
+  document.getElementById('defib-modal').classList.remove('hidden');
+}
+
+function closeDefibModal(e) {
+  if (e && e.target !== document.getElementById('defib-modal')) return;
+  document.getElementById('defib-modal').classList.add('hidden');
+}
+
+async function saveDefib() {
+  const uuid     = document.getElementById('defib-modal-uuid').value;
+  const group_id = document.getElementById('defib-group-id').value.trim();
+  const location = document.getElementById('defib-location').value.trim();
+  if (!group_id || !location) { CFR.toast('Group ID and location are required.', 'warning'); return; }
+
+  const body = {
+    group_id, location,
+    make:               document.getElementById('defib-make').value.trim(),
+    model:              document.getElementById('defib-model').value.trim(),
+    serial_number:      document.getElementById('defib-serial').value.trim(),
+    case_lock_code:     document.getElementById('defib-lock-code').value.trim(),
+    installation_date:  document.getElementById('defib-install-date').value || null,
+    responsible_person: document.getElementById('defib-responsible').value.trim(),
+    contact_number:     document.getElementById('defib-contact').value.trim(),
+    registered_on_circuit: document.getElementById('defib-on-circuit').checked,
+  };
+
+  try {
+    if (uuid) {
+      await CFR.apiPatch(`/api/defibs/${uuid}`, body);
+    } else {
+      await CFR.apiPost('/api/defibs', body);
+    }
+    document.getElementById('defib-modal').classList.add('hidden');
+    CFR.toast(uuid ? 'Defib updated.' : 'Defib added.', 'success');
+    await loadDefibs();
+    loadReport();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+async function deactivateDefib() {
+  const uuid = document.getElementById('defib-modal-uuid').value;
+  if (!uuid || !confirm('Deactivate this defibrillator? It will no longer appear in the active list.')) return;
+  try {
+    await CFR.apiPatch(`/api/defibs/${uuid}`, { active: false });
+    document.getElementById('defib-modal').classList.add('hidden');
+    CFR.toast('Defib deactivated.', 'success');
+    loadDefibs();
+    loadReport();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+function openBleedKitModal(uuid) {
+  const b = uuid ? _bleedKits.find(x => x.uuid === uuid) : null;
+  document.getElementById('bleed-kit-modal-title').textContent = b ? 'Edit Bleed Kit' : 'Add Bleed Kit';
+  document.getElementById('bleed-kit-modal-uuid').value        = uuid || '';
+  document.getElementById('bk-group-id').value                 = b?.group_id           || '';
+  document.getElementById('bk-location').value                 = b?.location           || '';
+  document.getElementById('bk-lock-code').value                = b?.cabinet_lock_code  || '';
+  document.getElementById('bk-responsible').value              = b?.responsible_person || '';
+  document.getElementById('bk-contact').value                  = b?.contact_number     || '';
+  document.getElementById('bleed-kit-deactivate-row').classList.toggle('hidden', !uuid);
+  document.getElementById('bleed-kit-modal').classList.remove('hidden');
+}
+
+function closeBleedKitModal(e) {
+  if (e && e.target !== document.getElementById('bleed-kit-modal')) return;
+  document.getElementById('bleed-kit-modal').classList.add('hidden');
+}
+
+async function saveBleedKit() {
+  const uuid     = document.getElementById('bleed-kit-modal-uuid').value;
+  const group_id = document.getElementById('bk-group-id').value.trim();
+  const location = document.getElementById('bk-location').value.trim();
+  if (!group_id || !location) { CFR.toast('Group ID and location are required.', 'warning'); return; }
+
+  const body = {
+    group_id, location,
+    cabinet_lock_code:  document.getElementById('bk-lock-code').value.trim(),
+    responsible_person: document.getElementById('bk-responsible').value.trim(),
+    contact_number:     document.getElementById('bk-contact').value.trim(),
+  };
+
+  try {
+    if (uuid) {
+      await CFR.apiPatch(`/api/bleed-kits/${uuid}`, body);
+    } else {
+      await CFR.apiPost('/api/bleed-kits', body);
+    }
+    document.getElementById('bleed-kit-modal').classList.add('hidden');
+    CFR.toast(uuid ? 'Bleed kit updated.' : 'Bleed kit added.', 'success');
+    await loadBleedKits();
+    loadReport();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+async function deactivateBleedKit() {
+  const uuid = document.getElementById('bleed-kit-modal-uuid').value;
+  if (!uuid || !confirm('Deactivate this bleed kit? It will no longer appear in the active list.')) return;
+  try {
+    await CFR.apiPatch(`/api/bleed-kits/${uuid}`, { active: false });
+    document.getElementById('bleed-kit-modal').classList.add('hidden');
+    CFR.toast('Bleed kit deactivated.', 'success');
+    loadBleedKits();
+    loadReport();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}

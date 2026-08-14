@@ -27,8 +27,9 @@ export async function onRequestGet({ params, env, data }) {
 
 export async function onRequestPatch({ request, params, env, data }) {
   const { user } = data;
-  if (!(user.roles || []).includes('coordinator')) {
-    return Response.json({ error: 'Coordinator role required' }, { status: 403 });
+  const roles = user.roles || [];
+  if (!roles.includes('coordinator') && !roles.includes('defib_manager')) {
+    return Response.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   const kit = await env.CFR_DATA.get(`bleed_kit:${params.uuid}`, { type: 'json' });
