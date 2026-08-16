@@ -9,7 +9,7 @@ PWA for Eccleshall Community First Responders (RC0681). Replaces Google Forms. V
 - **API:** Cloudflare Pages Functions — one file per route under `functions/api/`
 - **Storage:** Cloudflare Workers KV — two namespaces: `CFR_USERS`, `CFR_DATA`
 - **Secrets:** `DVLA_API_KEY` stored as Cloudflare Pages environment secret (never in code)
-- **Service worker:** `sw.js` — bump `CACHE` version string on every deploy to force device updates (currently `cfr-v22`)
+- **Service worker:** `sw.js` — bump `CACHE` version string on every deploy to force device updates (currently `cfr-v27`)
 
 ## Deployment
 
@@ -87,6 +87,7 @@ Stored as array in user profile. Current roles:
 - `compliance` — read/resolve access for defects and compliance data
 - `fire_safety_officer` — access to fire safety check forms and reports tab in coordinator dashboard
 - `defib_manager` — access to defib/bleed kit checks only; cannot access responder pages (vehicle shift, inspection, mileage, monthly check, availability); CAN access duty hours
+- `uniform_officer` — access to uniform tracker (`uniform.html`) only; cannot access responder pages; managed via `uniform_tracker` feature flag
 - `support` — cross-group platform admin; middleware injects `coordinator` at runtime
 
 Users can hold multiple roles: `["responder", "fire_safety_officer"]`.
@@ -118,12 +119,17 @@ Users can hold multiple roles: `["responder", "fire_safety_officer"]`.
 - `bleed_kit:{uuid}` — bleed kit device record (group_id, location, lock code, responsible person, contact, active)
 - `bleed_kit:index` — array of all bleed kit UUIDs
 - `bleed_kit_check:{date}:{uuid}` — bleed kit check record; metadata: `{ bleed_kit_uuid }` for per-device listing
+- `announcement:{YYYY-MM-DD}:{uuid}` — coordinator announcement; `announcement:active` → array of active UUIDs
+- `uniform_item:{uuid}` — uniform item type (name, category, sizes, active); `uniform_item:index` → array of UUIDs
+- `uniform_issue:{YYYY-MM-DD}:{uuid}` — uniform issue record; `uniform_issue:index` → array of all issue UUIDs
+- `uniform_ack:{issue_uuid}` — acknowledgement record for an issue
+- `uniform_return:{issue_uuid}` — return record for an issue
 
 ## Public endpoints
 
-- `GET /api/stats` — aggregate stats for eccleshallcfrs-site.pages.dev (CORS, 5-min cache)
+- `GET /api/stats` — aggregate stats for eccleshallcfrs-site.pages.dev (CORS, 5-min cache); includes `scheme_name`, `callsign`, `defibs_on_circuit`, `responders_total`, `checks_completed_this_month`
 - `GET /api/wallboard?pin=XXXX` — compliance wallboard (PIN-authenticated, no user auth)
-- `GET /api/status/active` — active duty status (public)
+- `GET /api/status/active` — active duty status; always includes `crew` (name+role array), `shift_start`, `vehicle` when active
 
 ## Architecture notes
 
@@ -156,6 +162,7 @@ Users can hold multiple roles: `["responder", "fire_safety_officer"]`.
 | `defib-check.html` | Record a defib check | defib_manager, coordinator |
 | `bleed-kit-check.html` | Record a bleed kit check | defib_manager, coordinator |
 | `coordinator.html` | Admin — users, settings, reports | coordinator, fire_safety_officer |
+| `uniform.html` | Uniform tracker — issue/return lifecycle | uniform_officer, coordinator |
 | `wallboard.html` | Compliance status display (PIN-only) | public (PIN) |
 
 ## Common gotchas

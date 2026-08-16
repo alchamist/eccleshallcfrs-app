@@ -3,9 +3,6 @@
 
 export async function onRequestGet({ env, request }) {
   try {
-    const url        = new URL(request.url);
-    const showNames  = url.searchParams.get('names') === 'true';
-
     const activeId = await env.CFR_DATA.get('vshift:active');
     if (!activeId) return jsonResponse({ active: false }, request);
 
@@ -19,12 +16,13 @@ export async function onRequestGet({ env, request }) {
     const activeCrew = (shift.crew || []).filter(c => !c.signed_off);
     if (!activeCrew.length) return jsonResponse({ active: false }, request);
 
-    const vcfg    = await env.CFR_DATA.get('config:vehicle', { type: 'json' });
-    const payload = { active: true, vehicle: vcfg?.callsign || 'RC0681' };
-
-    if (showNames) {
-      payload.crew = activeCrew.map(c => ({ name: c.name, role: c.role }));
-    }
+    const vcfg = await env.CFR_DATA.get('config:vehicle', { type: 'json' });
+    const payload = {
+      active:      true,
+      vehicle:     vcfg?.callsign || 'RC0681',
+      shift_start: shift.start_datetime || null,
+      crew:        activeCrew.map(c => ({ name: c.name, role: c.role })),
+    };
 
     return jsonResponse(payload, request);
   } catch {

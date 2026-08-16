@@ -1,5 +1,5 @@
 // Bump this string on every deploy to evict stale caches from users' devices.
-const CACHE = 'cfr-v26';
+const CACHE = 'cfr-v27';
 
 const STATIC = [
   '/index.html',
@@ -38,6 +38,8 @@ const STATIC = [
   '/js/defib-check.js',
   '/bleed-kit-check.html',
   '/js/bleed-kit-check.js',
+  '/uniform.html',
+  '/js/uniform.js',
   '/favicon.ico',
   '/icons/icon-192.png',
   '/icons/icon-512.png',

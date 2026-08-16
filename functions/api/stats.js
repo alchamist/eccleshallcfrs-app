@@ -20,11 +20,14 @@ export async function onRequestGet({ env, request }) {
   const ytdPrefix   = `${year}-`;
   const monthPrefix = `${year}-${month}-`;
 
-  const [dutyKeys, claimKeys, vdiKeys, userIndex] = await Promise.all([
+  const [dutyKeys, claimKeys, vdiKeys, monthlyKeys, userIndex, defibIndex, vcfg] = await Promise.all([
     env.CFR_DATA.list({ prefix: 'duty:' }),
     env.CFR_DATA.list({ prefix: 'claim:' }),
     env.CFR_DATA.list({ prefix: 'vdi:' }),
+    env.CFR_DATA.list({ prefix: `monthly:${year}-${month}:` }),
     env.CFR_USERS.get('users:index', { type: 'json' }),
+    env.CFR_DATA.get('defib:index', { type: 'json' }),
+    env.CFR_DATA.get('config:vehicle', { type: 'json' }),
   ]);
 
   // Fetch all duty and claim records
@@ -52,22 +55,33 @@ export async function onRequestGet({ env, request }) {
   }
 
   // Active responders
-  const activeCount = userIndex
-    ? (await Promise.all(
-        userIndex.map(k => env.CFR_USERS.get(`user:${k}`, { type: 'json' }))
-      )).filter(u => u?.active).length
-    : 0;
+  const allUsers = userIndex
+    ? (await Promise.all(userIndex.map(k => env.CFR_USERS.get(`user:${k}`, { type: 'json' })))).filter(Boolean)
+    : [];
+  const activeCount = allUsers.filter(u => u.active).length;
+
+  // Defibs on circuit
+  let defibsOnCircuit = 0;
+  if (defibIndex?.length) {
+    const defibs = await Promise.all(defibIndex.map(id => env.CFR_DATA.get(`defib:${id}`, { type: 'json' })));
+    defibsOnCircuit = defibs.filter(d => d?.on_circuit && d?.active !== false).length;
+  }
 
   const stats = {
-    generated_at:           now.toISOString(),
-    total_duty_hours_ytd:   Math.round(totalDutyMinsYTD / 60),
-    total_duty_mins_ytd:    totalDutyMinsYTD,
-    incidents_ytd:          claimYTD.filter(c => c.incident_type !== 'na').length,
-    incidents_this_month:   claimMonth.filter(c => c.incident_type !== 'na').length,
-    total_miles_ytd:        Math.round(totalMilesYTD * 10) / 10,
-    active_responders:      activeCount,
-    last_vdi_date:          lastVDIDate,
-    last_vdi_pass:          lastVDIPass,
+    generated_at:               now.toISOString(),
+    scheme_name:                vcfg?.scheme_name || 'Eccleshall CFR',
+    callsign:                   vcfg?.callsign    || 'RC0681',
+    total_duty_hours_ytd:       Math.round(totalDutyMinsYTD / 60),
+    total_duty_mins_ytd:        totalDutyMinsYTD,
+    incidents_ytd:              claimYTD.filter(c => c.incident_type !== 'na').length,
+    incidents_this_month:       claimMonth.filter(c => c.incident_type !== 'na').length,
+    total_miles_ytd:            Math.round(totalMilesYTD * 10) / 10,
+    responders_total:           activeCount,
+    active_responders:          activeCount,
+    defibs_on_circuit:          defibsOnCircuit,
+    checks_completed_this_month: monthlyKeys.keys.length,
+    last_vdi_date:              lastVDIDate,
+    last_vdi_pass:              lastVDIPass,
   };
 
   await env.CFR_DATA.put('stats:cache', JSON.stringify(stats), { expirationTtl: CACHE_TTL_SECS * 2 });

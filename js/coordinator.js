@@ -23,6 +23,11 @@ window.addEventListener('load', () => {
     document.getElementById('role-defib-label')?.classList.remove('hidden');
     document.getElementById('edit-role-defib-label')?.classList.remove('hidden');
   }
+  if (CFR.hasFeature('uniform_tracker')) {
+    document.querySelector('[data-tab="uniform"]')?.classList.remove('hidden');
+    document.getElementById('role-uniform-label')?.classList.remove('hidden');
+    document.getElementById('edit-role-uniform-label')?.classList.remove('hidden');
+  }
 
   // If user is Fire Safety Officer only (not coordinator), restrict to fire-safety tab
   if (!CFR.hasRole('coordinator') && CFR.hasRole('fire_safety_officer')) {
@@ -44,15 +49,17 @@ function switchTab(tab) {
   activeTab = tab;
 
   if (tab === 'submissions') loadSubmissions();
-  if (tab === 'report')      initReportPickers();
+  if (tab === 'report')    { initReportPickers(); loadRestockStatus(); }
   if (tab === 'users')     { loadUsers(); updateDeviceModeStatus(); }
-  if (tab === 'rota')      { if (!_users.length) loadUsers(); loadRotaBlocks(); }
+  if (tab === 'rota')      { if (!_users.length) loadUsers(); loadRotaBlocks(); loadAvailabilityView(); }
   if (tab === 'fire-safety') { if (!_users.length) loadUsers(); loadFireSafetyReports(); }
   if (tab === 'stats')       loadStats();
   if (tab === 'vehicle')     { loadVehicleSettings(); loadUnavailability(); }
   if (tab === 'audit')       loadAuditLog();
   if (tab === 'training')    loadTeamTraining();
-  if (tab === 'equipment')   loadEquipmentTab();
+  if (tab === 'equipment')     loadEquipmentTab();
+  if (tab === 'uniform')       loadUniformTabSummary();
+  if (tab === 'announcements') loadAnnouncementsTab();
 }
 
 // ── Submissions ───────────────────────────────────────────────────────────────
@@ -313,7 +320,14 @@ function openEditModal(accessKey) {
   document.getElementById('edit-role-coordinator').checked    = (user.roles || []).includes('coordinator');
   document.getElementById('edit-role-compliance').checked     = (user.roles || []).includes('compliance');
   document.getElementById('edit-role-fire-safety').checked    = (user.roles || []).includes('fire_safety_officer');
-  document.getElementById('edit-role-defib-manager').checked  = (user.roles || []).includes('defib_manager');
+  document.getElementById('edit-role-defib-manager').checked   = (user.roles || []).includes('defib_manager');
+  document.getElementById('edit-role-uniform-officer').checked  = (user.roles || []).includes('uniform_officer');
+  document.getElementById('edit-start-date').value        = user.start_date || '';
+  document.getElementById('edit-phone').value             = user.phone || '';
+  document.getElementById('edit-email').value             = user.email || '';
+  document.getElementById('edit-ec-name').value           = user.emergency_contact?.name || '';
+  document.getElementById('edit-ec-phone').value          = user.emergency_contact?.phone || '';
+  document.getElementById('edit-ec-relationship').value   = user.emergency_contact?.relationship || '';
   document.getElementById('edit-modal').classList.remove('hidden');
 }
 
@@ -334,13 +348,24 @@ async function saveEdit() {
   if (document.getElementById('edit-role-coordinator').checked)    roles.push('coordinator');
   if (document.getElementById('edit-role-compliance').checked)     roles.push('compliance');
   if (document.getElementById('edit-role-fire-safety').checked)    roles.push('fire_safety_officer');
-  if (document.getElementById('edit-role-defib-manager').checked)  roles.push('defib_manager');
+  if (document.getElementById('edit-role-defib-manager').checked)   roles.push('defib_manager');
+  if (document.getElementById('edit-role-uniform-officer').checked) roles.push('uniform_officer');
 
   if (!name)         { CFR.toast('Name is required.', 'warning'); return; }
   if (!roles.length) { CFR.toast('At least one role required.', 'warning'); return; }
 
+  const start_date = document.getElementById('edit-start-date').value || null;
+  const phone      = document.getElementById('edit-phone').value.trim() || null;
+  const email      = document.getElementById('edit-email').value.trim() || null;
+  const ecName     = document.getElementById('edit-ec-name').value.trim();
+  const ecPhone    = document.getElementById('edit-ec-phone').value.trim();
+  const ecRel      = document.getElementById('edit-ec-relationship').value.trim();
+  const emergency_contact = (ecName || ecPhone || ecRel)
+    ? { name: ecName || null, phone: ecPhone || null, relationship: ecRel || null }
+    : null;
+
   try {
-    await CFR.apiPatch('/api/users', { access_key, name, prf_number, roles });
+    await CFR.apiPatch('/api/users', { access_key, name, prf_number, roles, start_date, phone, email, emergency_contact });
     document.getElementById('edit-modal').classList.add('hidden');
     CFR.toast('User updated.', 'success');
     loadUsers();
@@ -740,6 +765,30 @@ async function recordMaintenanceDone() {
     document.getElementById('maint-log-mileage').value = '';
     loadMaintenanceHistory();
   } catch (e) { CFR.toast(e.message, 'error'); }
+}
+
+async function sendMaintenanceAlertEmail(btn) {
+  const status = document.getElementById('maint-alert-status');
+  btn.disabled = true;
+  btn.textContent = 'Sending…';
+  status.style.display = 'none';
+  try {
+    const { sent, alerts_count, message } = await CFR.apiPost('/api/maintenance/alert', {});
+    if (sent) {
+      status.textContent = `Email sent — ${alerts_count} item${alerts_count !== 1 ? 's' : ''} flagged.`;
+      status.style.color = 'var(--green)';
+    } else {
+      status.textContent = message || 'No items currently due.';
+      status.style.color = 'var(--text-muted)';
+    }
+  } catch (e) {
+    status.textContent = `Failed: ${e.message}`;
+    status.style.color = 'var(--red)';
+  } finally {
+    status.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Send Alert Email';
+  }
 }
 
 async function loadMaintenanceHistory() {
@@ -1657,6 +1706,291 @@ async function deactivateBleedKit() {
     CFR.toast('Bleed kit deactivated.', 'success');
     loadBleedKits();
     loadEquipmentReport();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+// ── Uniform Tracker (coordinator summary tab) ─────────────────────────────────
+
+async function loadUniformTabSummary() {
+  const container = document.getElementById('uniform-report-summary');
+  if (!container) return;
+  try {
+    const { report } = await CFR.apiGet('/api/uniform/report');
+    container.innerHTML = `
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:8px;">
+        <div class="stat-card"><div class="stat-value">${report.outstanding}</div><div class="stat-label">Outstanding</div></div>
+        <div class="stat-card"><div class="stat-value">${report.returned}</div><div class="stat-label">Returned</div></div>
+        <div class="stat-card"><div class="stat-value">${report.issued}</div><div class="stat-label">Awaiting Ack</div></div>
+        <div class="stat-card"><div class="stat-value">${report.total}</div><div class="stat-label">Total Issued</div></div>
+      </div>`;
+  } catch (e) {
+    container.innerHTML = `<div class="alert alert-danger" style="margin:0;"><span>⚠</span>${e.message}</div>`;
+  }
+}
+
+// ── Load List Expiry / Restocking ─────────────────────────────────────────────
+
+let _restockItems = [];
+let _restockMonth = null;
+
+const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+async function loadRestockStatus() {
+  const container = document.getElementById('restock-status');
+  if (!container) return;
+  try {
+    const { items, check_month } = await CFR.apiGet('/api/monthly-check/restock');
+    _restockItems = items || [];
+    _restockMonth = check_month;
+
+    if (!_restockItems.length) {
+      container.innerHTML = `<p style="font-size:14px; color:var(--green); margin:0;">All items OK on the ${check_month ? `${check_month} ` : ''}monthly check.</p>`;
+      return;
+    }
+
+    const expired  = _restockItems.filter(i => i.reason === 'expired');
+    const expiring = _restockItems.filter(i => i.reason === 'expiring');
+    const depleted = _restockItems.filter(i => i.reason === 'depleted');
+
+    const summary = [];
+    if (depleted.length)  summary.push(`<span style="color:var(--red);">${depleted.length} depleted</span>`);
+    if (expired.length)   summary.push(`<span style="color:var(--red);">${expired.length} expired</span>`);
+    if (expiring.length)  summary.push(`<span style="color:var(--yellow, #b45309);">${expiring.length} expiring soon</span>`);
+
+    container.innerHTML = `
+      <div style="font-size:14px; margin-bottom:8px;">
+        ${summary.join(' · ')} — from the ${check_month || 'latest'} check
+      </div>
+      ${_restockItems.map(i => {
+        const colour = i.reason === 'expiring' ? 'var(--yellow, #b45309)' : 'var(--red)';
+        const expiryStr = (i.expiry_month != null && i.expiry_year != null)
+          ? ` (exp. ${MONTHS_SHORT[i.expiry_month - 1]} ${i.expiry_year})`
+          : '';
+        const reasonLabel = i.reason === 'depleted' ? 'Depleted' : i.reason === 'expired' ? 'Expired' : `Expiring in ${i.days_left}d`;
+        return `<div style="display:flex; align-items:center; gap:8px; padding:4px 0; border-bottom:1px solid var(--border); font-size:13px;">
+          <span style="color:${colour}; font-size:11px; font-weight:600; min-width:80px;">${reasonLabel}</span>
+          <span>${i.label}${expiryStr}</span>
+        </div>`;
+      }).join('')}`;
+  } catch { container.innerHTML = ''; }
+}
+
+async function generateRestockingList() {
+  if (!_restockItems.length) {
+    // Try fetching fresh
+    try {
+      const { items, check_month } = await CFR.apiGet('/api/monthly-check/restock');
+      _restockItems = items || [];
+      _restockMonth = check_month;
+    } catch (e) { CFR.toast(e.message, 'error'); return; }
+  }
+
+  if (!_restockItems.length) {
+    CFR.toast('No items to restock — all OK on the latest check.', 'success');
+    return;
+  }
+
+  const subtitle = document.getElementById('restock-modal-subtitle');
+  subtitle.textContent = `From monthly check: ${_restockMonth || 'latest'} · ${_restockItems.length} item${_restockItems.length !== 1 ? 's' : ''} need attention`;
+
+  const list = document.getElementById('restock-modal-list');
+  list.innerHTML = `
+    <table style="width:100%; border-collapse:collapse; font-size:14px;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border); text-align:left;">
+          <th style="padding:6px 8px; font-weight:600;">Item</th>
+          <th style="padding:6px 8px; font-weight:600; text-align:center;">Qty</th>
+          <th style="padding:6px 8px; font-weight:600;">Reason</th>
+          <th style="padding:6px 8px; text-align:center;">✓</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${_restockItems.map((i, idx) => {
+          const expiryStr = (i.expiry_month != null && i.expiry_year != null)
+            ? `${MONTHS_SHORT[i.expiry_month - 1]} ${i.expiry_year}`
+            : '';
+          const reasonLabel = i.reason === 'depleted' ? 'Depleted' : i.reason === 'expired' ? `Expired (${expiryStr})` : `Expiring (${expiryStr}, ${i.days_left}d)`;
+          return `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:8px;">${i.label}</td>
+            <td style="padding:8px; text-align:center; font-variant-numeric:tabular-nums;">${i.qty}</td>
+            <td style="padding:8px; font-size:12px; color:var(--text-muted);">${reasonLabel}</td>
+            <td style="padding:8px; text-align:center;"><input type="checkbox" id="restock-chk-${idx}"></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+
+  document.getElementById('restock-modal').classList.remove('hidden');
+}
+
+function printRestockList() {
+  const content = document.getElementById('restock-modal-list').innerHTML;
+  const subtitle = document.getElementById('restock-modal-subtitle').textContent;
+  const w = window.open('', '_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Restocking List</title>
+    <style>body{font-family:sans-serif;padding:20px;}h2{margin-bottom:4px;}p{color:#666;margin-top:0;}
+    table{width:100%;border-collapse:collapse;}th,td{padding:8px;border:1px solid #ccc;text-align:left;}
+    th{background:#f5f5f5;}@media print{input{display:none;} td:last-child{min-width:30px;}}</style></head>
+    <body><h2>Restocking List</h2><p>${subtitle}</p>${content}</body></html>`);
+  w.document.close();
+  w.print();
+}
+
+function exportRestockCSV() {
+  const rows = [['Item', 'Qty Needed', 'Reason', 'Expiry']];
+  _restockItems.forEach(i => {
+    const expiryStr = (i.expiry_month != null && i.expiry_year != null)
+      ? `${MONTHS_SHORT[i.expiry_month - 1]} ${i.expiry_year}`
+      : '';
+    rows.push([`"${i.label}"`, i.qty, i.reason, expiryStr]);
+  });
+  const csv  = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = `restock-${_restockMonth || 'latest'}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Availability Summary ──────────────────────────────────────────────────────
+
+const DAY_NAMES = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+
+async function loadAvailabilityView() {
+  const container = document.getElementById('availability-summary');
+  if (!container) return;
+  container.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  try {
+    const { days } = await CFR.apiGet('/api/rota/availability/summary');
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (!days || !days.some(d => d.slots.length)) {
+      container.innerHTML = '<p style="font-size:14px; color:var(--text-muted); padding:8px 0; margin:0;">No availability submitted for the next 7 days.</p>';
+      return;
+    }
+
+    container.innerHTML = days.map(d => {
+      const date    = new Date(d.date + 'T00:00:00');
+      const dayName = DAY_NAMES[date.getDay()];
+      const isToday = d.date === today;
+      const label   = isToday ? `Today (${dayName})` : `${dayName} ${CFR.fmtDate(d.date)}`;
+
+      if (!d.slots.length) return `
+        <div style="padding:8px 0; border-bottom:1px solid var(--border);">
+          <div style="font-size:13px; font-weight:${isToday ? '700' : '500'}; color:${isToday ? 'var(--blue)' : 'var(--text-primary)'};">${label}</div>
+          <div style="font-size:12px; color:var(--text-muted); margin-top:2px;">No availability submitted</div>
+        </div>`;
+
+      const slots = d.slots.map(s => {
+        const time = (s.start && s.end) ? ` · ${s.start}–${s.end}` : '';
+        return `<span style="display:inline-block; background:var(--surface-muted,var(--surface)); border:1px solid var(--border); border-radius:6px; padding:2px 8px; margin:2px; font-size:12px;">${s.name}${time}</span>`;
+      }).join('');
+
+      return `
+        <div style="padding:8px 0; border-bottom:1px solid var(--border);">
+          <div style="font-size:13px; font-weight:${isToday ? '700' : '500'}; color:${isToday ? 'var(--blue)' : 'var(--text-primary)'}; margin-bottom:4px;">${label}</div>
+          <div style="display:flex; flex-wrap:wrap; gap:2px;">${slots}</div>
+        </div>`;
+    }).join('') + `<p style="font-size:12px; color:var(--text-muted); margin:8px 0 0;">Showing availability submitted via the rota planner.</p>`;
+  } catch (e) {
+    container.innerHTML = `<div class="alert alert-danger" style="margin:0;"><span>⚠</span>${e.message}</div>`;
+  }
+}
+
+// ── Announcements ─────────────────────────────────────────────────────────────
+
+let _announcements = [];
+
+async function loadAnnouncementsTab() {
+  const list = document.getElementById('announcements-list');
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  try {
+    const { announcements } = await CFR.apiGet('/api/announcements');
+    _announcements = announcements || [];
+
+    if (!_announcements.length) {
+      list.innerHTML = '<div class="empty-state"><p>No active announcements.</p></div>';
+      return;
+    }
+
+    list.innerHTML = _announcements.map(a => {
+      const expires = a.expires_at ? ` · Expires ${CFR.fmtDate(a.expires_at.slice(0,10))}` : '';
+      return `
+        <div class="card" style="margin-bottom:10px; padding:14px;">
+          <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
+            <div style="flex:1; min-width:0;">
+              <div style="font-weight:600; font-size:15px;">${a.title}</div>
+              <div style="font-size:13px; color:var(--text-muted); margin-top:4px; white-space:pre-wrap;">${a.body}</div>
+              <div style="font-size:12px; color:var(--text-muted); margin-top:6px;">
+                By ${a.created_by_name} · ${CFR.fmtDate(a.created_at.slice(0,10))}${expires}
+              </div>
+            </div>
+            <button class="btn btn-sm btn-ghost" onclick="openAnnouncementModal('${a.id}')">Edit</button>
+          </div>
+        </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<div class="alert alert-danger"><span>⚠</span>${e.message}</div>`;
+  }
+}
+
+function openAnnouncementModal(id) {
+  const a = id ? _announcements.find(x => x.id === id) : null;
+  document.getElementById('announcement-modal-title').textContent = a ? 'Edit Announcement' : 'New Announcement';
+  document.getElementById('announcement-modal-id').value    = a?.id || '';
+  document.getElementById('announcement-title').value       = a?.title || '';
+  document.getElementById('announcement-body').value        = a?.body || '';
+  document.getElementById('announcement-expires').value     = a?.expires_at ? a.expires_at.slice(0,10) : '';
+  document.getElementById('announcement-delete-row').classList.toggle('hidden', !a);
+  document.getElementById('announcement-modal').classList.remove('hidden');
+}
+
+function closeAnnouncementModal(e) {
+  if (e && e.target !== document.getElementById('announcement-modal')) return;
+  document.getElementById('announcement-modal').classList.add('hidden');
+}
+
+async function saveAnnouncement() {
+  const id      = document.getElementById('announcement-modal-id').value;
+  const title   = document.getElementById('announcement-title').value.trim();
+  const body    = document.getElementById('announcement-body').value.trim();
+  const expires = document.getElementById('announcement-expires').value;
+
+  if (!title) { CFR.toast('Title is required.', 'warning'); return; }
+  if (!body)  { CFR.toast('Message is required.', 'warning'); return; }
+
+  const payload = {
+    title,
+    announcement_body: body,
+    expires_at: expires ? new Date(expires + 'T23:59:59Z').toISOString() : null,
+  };
+
+  try {
+    if (id) {
+      await CFR.apiPatch(`/api/announcements/${id}`, payload);
+    } else {
+      await CFR.apiPost('/api/announcements', payload);
+    }
+    document.getElementById('announcement-modal').classList.add('hidden');
+    CFR.toast(id ? 'Announcement updated.' : 'Announcement posted.', 'success');
+    loadAnnouncementsTab();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+async function deleteAnnouncement() {
+  const id = document.getElementById('announcement-modal-id').value;
+  if (!id || !confirm('Delete this announcement? It will no longer appear on dashboards.')) return;
+  try {
+    await CFR.apiDelete(`/api/announcements/${id}`);
+    document.getElementById('announcement-modal').classList.add('hidden');
+    CFR.toast('Announcement deleted.', 'success');
+    loadAnnouncementsTab();
   } catch (e) {
     CFR.toast(e.message, 'error');
   }

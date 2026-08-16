@@ -33,7 +33,9 @@
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="vehicle"      onclick="switchTab('vehicle')">Vehicle</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="audit"        onclick="switchTab('audit')">Audit</button>
       <button class="btn btn-ghost btn-sm tab-btn" data-tab="training"     onclick="switchTab('training')">Training</button>
-      <button class="btn btn-ghost btn-sm tab-btn hidden" data-tab="equipment"  onclick="switchTab('equipment')">Equipment</button>
+      <button class="btn btn-ghost btn-sm tab-btn hidden" data-tab="equipment"     onclick="switchTab('equipment')">Equipment</button>
+      <button class="btn btn-ghost btn-sm tab-btn hidden" data-tab="uniform"       onclick="switchTab('uniform')">Uniform</button>
+      <button class="btn btn-ghost btn-sm tab-btn" data-tab="announcements" onclick="switchTab('announcements')">Announcements</button>
     </div>
 
     <!-- Submissions tab -->
@@ -74,6 +76,18 @@
         <button class="btn btn-primary btn-block" onclick="loadReport()">Generate Report</button>
       </div>
       <div id="report-content"></div>
+
+      <!-- Load list expiry / restocking -->
+      <div class="card" style="margin-top:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
+          <p class="card-title" style="margin:0;">Load List Status</p>
+          <button class="btn btn-sm btn-secondary" onclick="generateRestockingList()">Restocking List</button>
+        </div>
+        <p class="card-subtitle">Items flagged or expiring within 30 days on the most recent monthly check.</p>
+        <div id="restock-status">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+      </div>
     </div>
 
     <!-- Export tab -->
@@ -166,6 +180,9 @@
             <label id="role-defib-label" style="display:flex; gap:6px; align-items:center; font-size:14px;" class="hidden">
               <input type="checkbox" id="role-defib-manager"> Defib Manager
             </label>
+            <label id="role-uniform-label" style="display:flex; gap:6px; align-items:center; font-size:14px;" class="hidden">
+              <input type="checkbox" id="role-uniform-officer"> Uniform Officer
+            </label>
           </div>
         </div>
         <hr class="divider">
@@ -197,6 +214,14 @@
 
     <!-- Rota tab -->
     <div id="tab-rota" class="hidden">
+
+      <!-- Availability summary -->
+      <div class="card" style="margin-bottom:16px;">
+        <p class="card-title">Who's Available — Next 7 Days</p>
+        <div id="availability-summary">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+      </div>
 
       <!-- Block list view -->
       <div id="rota-blocks-view">
@@ -388,6 +413,14 @@
         </div>
       </div>
 
+      <!-- Maintenance alert email -->
+      <div class="card">
+        <p class="card-title">Maintenance Alert Email</p>
+        <p class="card-subtitle">Sends an email to the coordinator listing all overdue or upcoming maintenance items. Requires <code>COORDINATOR_EMAIL</code> to be configured as a Pages secret.</p>
+        <button class="btn btn-secondary btn-block" onclick="sendMaintenanceAlertEmail(this)">Send Alert Email</button>
+        <p id="maint-alert-status" style="text-align:center; font-size:13px; margin-top:8px; display:none;"></p>
+      </div>
+
       <!-- Vehicle unavailability -->
       <div class="card">
         <p class="card-title">Book Vehicle Unavailability</p>
@@ -493,9 +526,76 @@
 
     </div>
 
+    <!-- Uniform tab (summary + link) -->
+    <div id="tab-uniform" class="hidden">
+      <div class="card" style="margin-bottom:16px;">
+        <p class="card-title">Uniform Tracker</p>
+        <div id="uniform-report-summary">
+          <div class="loading"><div class="spinner"></div>Loading…</div>
+        </div>
+        <hr class="divider">
+        <a href="/uniform.html" class="btn btn-primary btn-block">Open Uniform Register</a>
+      </div>
+    </div>
+
+    <!-- Announcements tab -->
+    <div id="tab-announcements" class="hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+        <p class="section-heading" style="margin:0;">Announcements</p>
+        <button class="btn btn-primary btn-sm" onclick="openAnnouncementModal(null)">+ New</button>
+      </div>
+      <div id="announcements-list">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
   </main>
 
   <nav id="bottom-nav" class="bottom-nav"></nav>
+
+  <!-- Restocking list modal -->
+  <div id="restock-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-box" onclick="event.stopPropagation()" style="max-height:85vh; display:flex; flex-direction:column;">
+      <div class="modal-header">
+        <h3 class="modal-title">Restocking List</h3>
+        <button class="modal-close" onclick="document.getElementById('restock-modal').classList.add('hidden')">✕</button>
+      </div>
+      <p id="restock-modal-subtitle" style="font-size:13px; color:var(--text-muted); margin-bottom:12px;"></p>
+      <div id="restock-modal-list" style="flex:1; overflow-y:auto;"></div>
+      <div style="display:flex; gap:8px; margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+        <button class="btn btn-ghost flex-1" onclick="printRestockList()">Print</button>
+        <button class="btn btn-secondary flex-1" onclick="exportRestockCSV()">Export CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Announcement modal -->
+  <div id="announcement-modal" class="modal-overlay hidden" onclick="closeAnnouncementModal(event)">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="announcement-modal-title" class="modal-title">New Announcement</h3>
+        <button class="modal-close" onclick="document.getElementById('announcement-modal').classList.add('hidden')">✕</button>
+      </div>
+      <input type="hidden" id="announcement-modal-id">
+      <div class="form-group">
+        <label class="form-label">Title <span class="req">*</span></label>
+        <input id="announcement-title" class="form-input" type="text" placeholder="e.g. Training Night Reminder">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Message <span class="req">*</span></label>
+        <textarea id="announcement-body" class="form-input" rows="4" placeholder="Enter your message…" style="resize:vertical;"></textarea>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Expires (optional)</label>
+        <input id="announcement-expires" class="form-input" type="date">
+      </div>
+      <hr class="divider">
+      <button class="btn btn-primary btn-block" onclick="saveAnnouncement()">Save</button>
+      <div id="announcement-delete-row" class="hidden" style="margin-top:8px;">
+        <button class="btn btn-ghost btn-block" style="color:var(--red);" onclick="deleteAnnouncement()">Delete</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Edit user modal -->
   <div id="edit-modal" class="modal-overlay hidden" onclick="closeEditModal(event)">
@@ -529,9 +629,41 @@
           <label id="edit-role-defib-label" style="display:flex; gap:6px; align-items:center; font-size:14px;" class="hidden">
             <input type="checkbox" id="edit-role-defib-manager"> Defib Manager
           </label>
+          <label id="edit-role-uniform-label" style="display:flex; gap:6px; align-items:center; font-size:14px;" class="hidden">
+            <input type="checkbox" id="edit-role-uniform-officer"> Uniform Officer
+          </label>
         </div>
       </div>
       <hr class="divider">
+      <div class="form-group">
+        <label class="form-label">Start Date</label>
+        <input id="edit-start-date" class="form-input" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phone</label>
+        <input id="edit-phone" class="form-input" type="tel" placeholder="Optional">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input id="edit-email" class="form-input" type="email" placeholder="Optional">
+      </div>
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; font-size:14px; color:var(--text-muted); user-select:none; padding:4px 0;">Emergency Contact</summary>
+        <div style="margin-top:10px;">
+          <div class="form-group">
+            <label class="form-label">Contact Name</label>
+            <input id="edit-ec-name" class="form-input" type="text" placeholder="Optional">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Phone</label>
+            <input id="edit-ec-phone" class="form-input" type="tel" placeholder="Optional">
+          </div>
+          <div class="form-group mb-0">
+            <label class="form-label">Relationship</label>
+            <input id="edit-ec-relationship" class="form-input" type="text" placeholder="e.g. Spouse, Parent">
+          </div>
+        </div>
+      </details>
       <div style="display:flex; gap:8px;">
         <button class="btn btn-ghost flex-1" onclick="closeEditModal()">Cancel</button>
         <button class="btn btn-primary flex-1" onclick="saveEdit()">Save</button>

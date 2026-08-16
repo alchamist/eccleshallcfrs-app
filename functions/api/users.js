@@ -77,7 +77,7 @@ export async function onRequestPost({ request, env, data }) {
     access_key,
     name:        name.trim(),
     prf_number:  (prf_number || '').trim(),
-    roles:       roles.filter(r => ['responder','coordinator','compliance','fire_safety_officer'].includes(r)),
+    roles:       roles.filter(r => ['responder','coordinator','compliance','fire_safety_officer','defib_manager','uniform_officer'].includes(r)),
     active:      true,
     pin_hash,
     pin_salt,
@@ -145,10 +145,14 @@ export async function onRequestPatch({ request, env, data }) {
   }
 
   const oldPrf = user.prf_number;
-  if (active !== undefined)     user.active     = active;
-  if (roles)                    user.roles      = roles;
-  if (name)                     user.name       = name.trim();
-  if (prf_number !== undefined) user.prf_number = prf_number.trim();
+  if (active !== undefined)                  user.active            = active;
+  if (roles)                                 user.roles             = roles;
+  if (name)                                  user.name              = name.trim();
+  if (prf_number !== undefined)              user.prf_number        = prf_number.trim();
+  if (body.start_date !== undefined)         user.start_date        = body.start_date || null;
+  if (body.phone !== undefined)              user.phone             = body.phone || null;
+  if (body.email !== undefined)              user.email             = body.email || null;
+  if (body.emergency_contact !== undefined)  user.emergency_contact = body.emergency_contact || null;
   user.updated_at = new Date().toISOString();
   user.updated_by = data.user.id;
 

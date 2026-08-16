@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Uniform Register — Eccleshall CFR</title>
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <link rel="apple-touch-icon" href="/icons/apple-touch-icon-180.png">
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body>
+  <header class="app-header">
+    <span class="header-logo"><span class="scheme-name">Eccleshall CFR</span> <span class="callsign">RC0681</span></span>
+    <span id="sync-badge" class="sync-indicator"></span>
+  </header>
+
+  <main class="main-content">
+
+    <!-- Tabs -->
+    <div style="display:flex; gap:6px; margin-bottom:12px;">
+      <button class="btn btn-primary btn-sm" id="tab-btn-register" onclick="switchUniformTab('register')">Register</button>
+      <button class="btn btn-ghost  btn-sm" id="tab-btn-items"    onclick="switchUniformTab('items')">Item Types</button>
+    </div>
+
+    <!-- Register tab: issued items list -->
+    <div id="utab-register">
+
+      <!-- Filters -->
+      <div style="display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap;">
+        <select id="filter-responder" class="form-select" style="flex:1; min-width:140px;" onchange="loadIssues()">
+          <option value="">All responders</option>
+        </select>
+        <select id="filter-status" class="form-select" style="flex:1; min-width:120px;" onchange="loadIssues()">
+          <option value="">All statuses</option>
+          <option value="issued">Awaiting ack</option>
+          <option value="acknowledged">Acknowledged</option>
+          <option value="returned">Returned</option>
+        </select>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <p class="section-heading" style="margin:0;">Issued Items</p>
+        <button class="btn btn-primary btn-sm" onclick="openIssueModal(null)">+ Issue Item</button>
+      </div>
+      <div id="issues-list">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+    <!-- Items tab: item type CRUD -->
+    <div id="utab-items" class="hidden">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        <p class="section-heading" style="margin:0;">Item Types</p>
+        <button class="btn btn-primary btn-sm" onclick="openItemModal(null)">+ Add Item</button>
+      </div>
+      <div id="items-list">
+        <div class="loading"><div class="spinner"></div>Loading…</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Issue modal -->
+  <div id="issue-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="issue-modal-title" class="modal-title">Issue Uniform Item</h3>
+        <button class="modal-close" onclick="document.getElementById('issue-modal').classList.add('hidden')">✕</button>
+      </div>
+      <input type="hidden" id="issue-modal-id">
+      <div class="form-group">
+        <label class="form-label">Item <span class="req">*</span></label>
+        <select id="issue-item" class="form-select" onchange="populateSizes()">
+          <option value="">Select item…</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Responder <span class="req">*</span></label>
+        <select id="issue-responder" class="form-select">
+          <option value="">Select responder…</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Size</label>
+        <select id="issue-size" class="form-select">
+          <option value="">N/A</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Quantity</label>
+        <input id="issue-qty" class="form-input" type="number" min="1" value="1">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date Issued</label>
+        <input id="issue-date" class="form-input" type="date">
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Condition at Issue</label>
+        <select id="issue-condition" class="form-select">
+          <option value="new">New</option>
+          <option value="good">Good</option>
+          <option value="fair">Fair</option>
+        </select>
+      </div>
+      <hr class="divider">
+      <button class="btn btn-primary btn-block" onclick="saveIssue()">Issue</button>
+    </div>
+  </div>
+
+  <!-- Return / status modal -->
+  <div id="return-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Record Return</h3>
+        <button class="modal-close" onclick="document.getElementById('return-modal').classList.add('hidden')">✕</button>
+      </div>
+      <input type="hidden" id="return-issue-id">
+      <div id="return-item-summary" style="font-size:14px; margin-bottom:12px;"></div>
+      <div class="form-group mb-0">
+        <label class="form-label">Condition at Return</label>
+        <select id="return-condition" class="form-select">
+          <option value="good">Good</option>
+          <option value="fair">Fair</option>
+          <option value="damaged">Damaged</option>
+          <option value="lost">Lost</option>
+        </select>
+      </div>
+      <hr class="divider">
+      <button class="btn btn-primary btn-block" onclick="recordReturn()">Confirm Return</button>
+    </div>
+  </div>
+
+  <!-- Item type modal -->
+  <div id="item-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 id="item-modal-title" class="modal-title">Add Item Type</h3>
+        <button class="modal-close" onclick="document.getElementById('item-modal').classList.add('hidden')">✕</button>
+      </div>
+      <input type="hidden" id="item-modal-id">
+      <div class="form-group">
+        <label class="form-label">Name <span class="req">*</span></label>
+        <input id="item-name" class="form-input" type="text" placeholder="e.g. Polo Shirt">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Category</label>
+        <select id="item-category" class="form-select">
+          <option value="top">Top</option>
+          <option value="jacket">Jacket</option>
+          <option value="trousers">Trousers</option>
+          <option value="boots">Boots</option>
+          <option value="hi-vis">Hi-Vis</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Available Sizes (comma-separated, leave blank for no sizes)</label>
+        <input id="item-sizes" class="form-input" type="text" placeholder="e.g. XS,S,M,L,XL,XXL">
+      </div>
+      <hr class="divider">
+      <button class="btn btn-primary btn-block" onclick="saveItem()">Save</button>
+      <div id="item-deactivate-row" class="hidden" style="margin-top:8px;">
+        <button class="btn btn-ghost btn-block" style="color:var(--red);" onclick="deactivateItem()">Deactivate</button>
+      </div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav" id="bottom-nav"></nav>
+
+  <script src="/js/app.js"></script>
+  <script src="/js/uniform.js"></script>
+</body>
+</html>

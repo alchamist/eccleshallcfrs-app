@@ -1,7 +1,84 @@
 CFR.requireAuth();
 
 async function init() {
-  await Promise.all([loadActiveShift(), loadStats(), loadRecent(), loadMaintenanceBanners()]);
+  await Promise.all([loadActiveShift(), loadStats(), loadRecent(), loadMaintenanceBanners(), loadAnnouncements(), loadUniformAcknowledgements()]);
+}
+
+async function loadUniformAcknowledgements() {
+  if (!CFR.hasFeature('uniform_tracker')) return;
+  try {
+    const { issues } = await CFR.apiGet('/api/uniform/issues?responder_id=self&status=issued');
+    if (!issues?.length) return;
+
+    const user = CFR.getUser();
+    const pending = issues.filter(i => i.responder_id === user.id || i.responder_id === user.access_key);
+    if (!pending.length) return;
+
+    const container = document.getElementById('announcements');
+    const banner = document.createElement('div');
+    banner.id = 'uniform-ack-banner';
+    banner.className = 'card';
+    banner.style.cssText = 'margin-bottom:10px; padding:14px; border-left:3px solid var(--yellow, #b45309);';
+    banner.innerHTML = `
+      <div style="font-weight:600; font-size:15px; margin-bottom:6px;">Uniform items awaiting acknowledgement</div>
+      <div style="font-size:14px; margin-bottom:10px;">
+        You have ${pending.length} uniform item${pending.length !== 1 ? 's' : ''} issued to you that need acknowledgement.
+      </div>
+      <div id="uniform-ack-list" style="margin-bottom:10px;"></div>
+      <button class="btn btn-primary btn-sm" onclick="acknowledgeAllUniform()">Acknowledge All</button>`;
+
+    const listEl = banner.querySelector('#uniform-ack-list');
+    listEl.innerHTML = pending.map(i => `<div style="font-size:13px; color:var(--text-muted); padding:2px 0;">• ${i.item_name}${i.size ? ` (${i.size})` : ''}, issued ${i.date_issued}</div>`).join('');
+
+    if (container) container.prepend(banner);
+
+    window._pendingUniformIssues = pending;
+  } catch { /* non-fatal */ }
+}
+
+async function acknowledgeAllUniform() {
+  const pending = window._pendingUniformIssues || [];
+  if (!pending.length) return;
+  const btn = document.querySelector('#uniform-ack-banner button');
+  if (btn) { btn.disabled = true; btn.textContent = 'Acknowledging…'; }
+
+  try {
+    await Promise.all(pending.map(i => CFR.apiPost(`/api/uniform/issues/${i.id}/ack`, {})));
+    document.getElementById('uniform-ack-banner')?.remove();
+    CFR.toast('Uniform receipt acknowledged. Thank you.', 'success');
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+    if (btn) { btn.disabled = false; btn.textContent = 'Acknowledge All'; }
+  }
+}
+
+async function loadAnnouncements() {
+  try {
+    const { announcements } = await CFR.apiGet('/api/announcements');
+    const container = document.getElementById('announcements');
+    if (!container || !announcements?.length) return;
+
+    const dismissed = JSON.parse(localStorage.getItem('dismissed_announcements') || '[]');
+    const visible = announcements.filter(a => !dismissed.includes(a.id));
+    if (!visible.length) return;
+
+    container.innerHTML = visible.map(a => `
+      <div class="card" data-announcement-id="${a.id}" style="margin-bottom:10px; padding:14px; border-left:3px solid var(--blue); display:flex; gap:12px; align-items:flex-start;">
+        <div style="flex:1; min-width:0;">
+          <div style="font-weight:600; font-size:15px; margin-bottom:4px;">${a.title}</div>
+          <div style="font-size:14px; color:var(--text-muted); white-space:pre-wrap;">${a.body}</div>
+        </div>
+        <button onclick="dismissAnnouncement('${a.id}')" style="background:none; border:none; cursor:pointer; font-size:18px; line-height:1; color:var(--text-muted); flex-shrink:0; padding:0;">✕</button>
+      </div>`).join('');
+  } catch { /* non-fatal */ }
+}
+
+function dismissAnnouncement(id) {
+  const dismissed = JSON.parse(localStorage.getItem('dismissed_announcements') || '[]');
+  if (!dismissed.includes(id)) dismissed.push(id);
+  localStorage.setItem('dismissed_announcements', JSON.stringify(dismissed));
+  const card = document.querySelector(`[data-announcement-id="${id}"]`);
+  if (card) card.remove();
 }
 
 async function loadMaintenanceBanners() {

@@ -276,6 +276,10 @@ function buildNav() {
     }
   }
 
+  if (hasFeature('uniform_tracker') && (hasRole('uniform_officer') || hasRole('coordinator'))) {
+    links.push({ href: '/uniform.html', icon: '👕', label: 'Uniform' });
+  }
+
   if (hasRole('coordinator') || user?.roles?.includes('support')) links.push({ href: '/system.html', icon: '🔧', label: 'System' });
   links.push({ href: '/help.html', icon: '❓', label: 'Help' });
 
