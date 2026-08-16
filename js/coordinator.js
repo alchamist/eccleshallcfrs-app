@@ -658,8 +658,9 @@ async function deleteUnavailability(id) {
 async function loadVehicleSettings() {
   try {
     const { config } = await CFR.apiGet('/api/config/vehicle');
-    document.getElementById('cfg-vrm').value   = config.vrm || '';
-    document.getElementById('cfg-tread').value = config.tread_warn_mm || 3;
+    document.getElementById('cfg-vrm').value                = config.vrm || '';
+    document.getElementById('cfg-coordinator-email').value  = config.coordinator_email || '';
+    document.getElementById('cfg-tread').value              = config.tread_warn_mm || 3;
     const m = config.maintenance || {};
     document.getElementById('maint-mot-due').value        = m.mot?.next_due         || '';
     document.getElementById('maint-mot-warn').value       = m.mot?.warn_days        || 30;
@@ -678,10 +679,11 @@ async function loadVehicleSettings() {
 
 async function saveVehicleSettings() {
   const vrm   = document.getElementById('cfg-vrm').value.trim().replace(/\s+/g, '').toUpperCase() || null;
+  const email = document.getElementById('cfg-coordinator-email').value.trim() || null;
   const tread = parseFloat(document.getElementById('cfg-tread').value);
   if (isNaN(tread) || tread < 1.6) { CFR.toast('Tread threshold must be at least 1.6mm.', 'warning'); return; }
   try {
-    const { config } = await CFR.apiPatch('/api/config/vehicle', { vrm, tread_warn_mm: tread });
+    const { config } = await CFR.apiPatch('/api/config/vehicle', { vrm, coordinator_email: email, tread_warn_mm: tread });
     localStorage.setItem('cfr_vehicle_config', JSON.stringify(config));
     CFR.toast('Settings saved.', 'success');
   } catch (e) { CFR.toast(e.message, 'error'); }

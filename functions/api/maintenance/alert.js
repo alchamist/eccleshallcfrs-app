@@ -1,20 +1,17 @@
 // POST /api/maintenance/alert — coordinator only
-// Sends an email to COORDINATOR_EMAIL summarising overdue/upcoming maintenance items.
-// Requires COORDINATOR_EMAIL Pages secret and Mailchannels access (free on Cloudflare Workers).
-// For automatic daily emails, create a separate Cloudflare Worker with a cron trigger
-// that calls this endpoint with a coordinator auth token.
+// Sends an email summarising overdue/upcoming maintenance items.
+// Recipient: config:vehicle.coordinator_email (set via coordinator settings), falling back to COORDINATOR_EMAIL env secret.
 
 export async function onRequestPost({ env, data }) {
   if (!data.user.roles?.includes('coordinator')) {
     return Response.json({ error: 'Coordinator role required' }, { status: 403 });
   }
 
-  const email = env.COORDINATOR_EMAIL;
-  if (!email) {
-    return Response.json({ error: 'COORDINATOR_EMAIL secret is not configured.' }, { status: 503 });
-  }
-
   const config = await env.CFR_DATA.get('config:vehicle', { type: 'json' }) || {};
+  const email  = config.coordinator_email || env.COORDINATOR_EMAIL;
+  if (!email) {
+    return Response.json({ error: 'No coordinator email configured. Set one in Vehicle Settings.' }, { status: 503 });
+  }
   const schemeName = config.scheme_name || 'CFR';
   const callsign   = config.callsign   || '';
   const m = config.maintenance || {};

@@ -1,9 +1,10 @@
 const DEFAULT = {
-  scheme_name:   'Eccleshall CFR',
-  callsign:      'RC0681',
-  vrm:           null,
-  tread_warn_mm: 3.0,
-  wallboard_pin: null,
+  scheme_name:       'Eccleshall CFR',
+  callsign:          'RC0681',
+  vrm:               null,
+  tread_warn_mm:     3.0,
+  wallboard_pin:     null,
+  coordinator_email: null,
   maintenance: {
     mot:        { next_due: null, warn_days: 30 },
     service:    { next_due: null, warn_days: 14, interval_miles: 10000, interval_months: 12 },
