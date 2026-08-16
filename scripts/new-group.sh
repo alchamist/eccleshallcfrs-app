@@ -111,6 +111,7 @@ DEPLOY_STEP=$(cat <<YAML
   deploy-${SLUG}:
     name: Deploy ${SCHEME_NAME}
     runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || github.event.inputs.group == 'all' || github.event.inputs.group == '${SLUG}'
     steps:
       - uses: actions/checkout@v4
       - name: Install Wrangler
