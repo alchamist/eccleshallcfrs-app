@@ -38,16 +38,3 @@ jobs:
         run: |
           cp wrangler.lichfield.toml wrangler.toml
           wrangler pages deploy . --project-name lichfieldcfrs-app
-
-  deploy-provisiontest:
-    name: Deploy Provision Test CFRs
-    runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.group == 'all' || github.event.inputs.group == 'provisiontest'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Wrangler
-        run: npm install -g wrangler
-      - name: Deploy to provisiontestcfrs-app
-        run: |
-          cp wrangler.provisiontest.toml wrangler.toml
-          wrangler pages deploy . --project-name provisiontestcfrs-app
