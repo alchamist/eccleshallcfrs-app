@@ -2,16 +2,28 @@ const CACHE_KEY  = 'dvla_cache';
 const CACHE_TTL  = 23 * 60 * 60 * 1000; // 23 hours in ms
 
 async function fetchDVLA(vrm, apiKey) {
-  const res = await fetch('https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles', {
-    method:  'POST',
-    headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
-    body:    JSON.stringify({ registrationNumber: vrm.replace(/\s+/g, '').toUpperCase() }),
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15000);
+  let res;
+  try {
+    res = await fetch('https://driver-vehicle-licensing.api.gov.uk/vehicle-enquiry/v1/vehicles', {
+      method:  'POST',
+      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ registrationNumber: vrm.replace(/\s+/g, '').toUpperCase() }),
+      signal:  controller.signal,
+    });
+  } catch (e) {
+    throw new Error(e.name === 'AbortError' ? 'DVLA API timed out' : `DVLA fetch failed: ${e.message}`);
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.errors?.[0]?.detail || `DVLA API error ${res.status}`);
   }
-  return res.json();
+  // return await (not return) so rejection from res.json() is thrown inside this
+  // function's context and propagates correctly through the caller's try/catch.
+  return await res.json();
 }
 
 async function getCachedDVLA(env) {
@@ -77,6 +89,7 @@ export async function onRequestPost({ env, data }) {
     const cache = await refreshDVLACache(env);
     return Response.json({ dvla: cache });
   } catch (e) {
-    return Response.json({ error: e.message }, { status: 502 });
+    console.error('DVLA POST error:', e);
+    return Response.json({ error: e?.message || String(e) }, { status: 502 });
   }
 }
