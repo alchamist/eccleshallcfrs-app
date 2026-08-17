@@ -1,0 +1,11 @@
+name = "emailtestcfrs-app"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "."
+
+[[kv_namespaces]]
+binding = "CFR_USERS"
+id = "7588464755284ac6b338be4c544cb594"
+
+[[kv_namespaces]]
+binding = "CFR_DATA"
+id = "d5b9a45f5adf468dabcebfa7aa91fa30"
