@@ -240,18 +240,20 @@ async function loadUsers() {
       return;
     }
 
+    const currentUser = CFR.getUser();
     list.innerHTML = users.map(u => {
       const isSupport = (u.roles || []).includes('support');
+      const isSelf    = u.access_key === currentUser?.access_key;
       const roleLabel = isSupport
         ? '<span class="badge" style="background:#7c3aed;color:#fff;">Support</span>'
         : `<span class="badge ${u.active ? 'badge-green' : 'badge-grey'}">${u.active ? 'Active' : 'Disabled'}</span>`;
       const roleText  = (u.roles || []).filter(r => r !== 'support').join(', ') || '—';
-      const actions   = isSupport
+      const actions   = isSupport && !isSelf
         ? '<span style="font-size:12px;color:var(--text-muted);align-self:center;">Managed externally</span>'
         : `<button class="btn btn-sm btn-ghost" onclick="openEditModal('${u.access_key}')">Edit</button>
-           ${u.active
+           ${!isSelf ? (u.active
              ? `<button class="btn btn-sm btn-ghost" style="color:var(--red);" onclick="toggleUser('${u.access_key}', false)">Disable</button>`
-             : `<button class="btn btn-sm btn-success" onclick="toggleUser('${u.access_key}', true)">Enable</button>`}`;
+             : `<button class="btn btn-sm btn-success" onclick="toggleUser('${u.access_key}', true)">Enable</button>`) : ''}`;
       return `
         <div class="card" style="margin-bottom:10px; padding:14px;">
           <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
