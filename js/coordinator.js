@@ -1046,6 +1046,77 @@ async function deleteRotaBlock(blockId) {
   }
 }
 
+async function deleteAvailEntry(entryId, blockId) {
+  if (!confirm('Remove this availability entry?')) return;
+  try {
+    await CFR.apiDelete(`/api/rota/availability?id=${entryId}&block_id=${blockId}`);
+    CFR.toast('Entry removed.', 'success');
+    openRotaBlock(blockId);
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+function openEditAvailModal(id, blockId, start, end, notes) {
+  document.getElementById('edit-avail-id').value       = id;
+  document.getElementById('edit-avail-block-id').value = blockId;
+  document.getElementById('edit-avail-start').value    = start;
+  document.getElementById('edit-avail-end').value      = end;
+  document.getElementById('edit-avail-notes').value    = notes || '';
+  document.getElementById('edit-avail-modal').classList.remove('hidden');
+}
+
+async function saveAvailEdit() {
+  const id      = document.getElementById('edit-avail-id').value;
+  const blockId = document.getElementById('edit-avail-block-id').value;
+  const start   = document.getElementById('edit-avail-start').value;
+  const end     = document.getElementById('edit-avail-end').value;
+  const notes   = document.getElementById('edit-avail-notes').value.trim();
+  try {
+    await CFR.apiPatch('/api/rota/availability', { id, block_id: blockId, start_time: start, end_time: end, notes });
+    document.getElementById('edit-avail-modal').classList.add('hidden');
+    CFR.toast('Entry updated.', 'success');
+    openRotaBlock(blockId);
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+function printRota(blockId) {
+  const block = _rotaBlocks.find(b => b.id === blockId);
+  if (!block) return;
+
+  const availByDay = {};
+  _blockAvailability.forEach(a => {
+    (availByDay[a.date] = availByDay[a.date] || []).push(a);
+  });
+
+  const days = daysInRange(block.start_date, block.end_date);
+  const rows = days.map(date => {
+    const entries = (availByDay[date] || []);
+    const slots   = entries.length
+      ? entries.map(a => `${a.responder_name} (${a.start_time}–${a.end_time})`).join('<br>')
+      : '<em style="color:#888;">—</em>';
+    const dow = new Date(date + 'T12:00').toLocaleDateString('en-GB', { weekday: 'short' });
+    return `<tr><td style="padding:6px 10px; border:1px solid #ccc; white-space:nowrap;">${dow} ${date}</td>
+              <td style="padding:6px 10px; border:1px solid #ccc;">${slots}</td></tr>`;
+  }).join('');
+
+  const html = `<!DOCTYPE html><html><head><title>Rota ${block.start_date} – ${block.end_date}</title>
+    <style>body{font-family:sans-serif;font-size:13px;} table{border-collapse:collapse;width:100%;}
+    h2{margin-bottom:8px;}</style></head><body>
+    <h2>Availability — ${CFR.fmtDate(block.start_date)} to ${CFR.fmtDate(block.end_date)}</h2>
+    <table><thead><tr>
+      <th style="padding:6px 10px;border:1px solid #ccc;text-align:left;">Date</th>
+      <th style="padding:6px 10px;border:1px solid #ccc;text-align:left;">Available</th>
+    </tr></thead><tbody>${rows}</tbody></table>
+    <script>window.print();<\/script></body></html>`;
+
+  const w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+}
+
 async function openRotaBlock(blockId) {
   _openBlockId = blockId;
   document.getElementById('rota-blocks-view').classList.add('hidden');
@@ -1101,6 +1172,7 @@ function renderBlockDetail(block) {
         ? `<button class="btn btn-sm btn-ghost" onclick="setBlockStatus('${block.id}','closed')">Close</button>`
         : ''}
       <button class="btn btn-sm btn-secondary" onclick="openAllocModal('${block.id}')">+ Add Shift</button>
+      <button class="btn btn-sm btn-ghost" onclick="printRota('${block.id}')">Print Rota</button>
     </div>`;
 
   const availByDay  = {};
@@ -1166,7 +1238,7 @@ function renderBlockDetail(block) {
             s.end_time === a.end_time
           );
           return `
-          <div style="display:flex; align-items:center; gap:8px; padding:4px 0;
+          <div style="display:flex; align-items:center; gap:6px; padding:4px 0;
                       border-bottom:1px solid var(--border);">
             <div style="flex:1; font-size:13px; ${blocked || alreadyAllocated ? 'opacity:.5;' : ''}">${a.responder_name} · ${a.start_time}–${a.end_time}
               ${a.notes ? `<span style="color:var(--text-muted); font-size:12px;"> — ${a.notes}</span>` : ''}
@@ -1176,8 +1248,12 @@ function renderBlockDetail(block) {
             <button class="btn btn-sm btn-ghost" style="padding:2px 8px; flex-shrink:0;"
                     ${blocked || alreadyAllocated ? 'disabled title="' + (alreadyAllocated ? 'Already allocated' : 'Vehicle unavailable during this time') + '"' : ''}
                     onclick="openAllocModal('${block.id}','${a.responder_id}','${date}','${a.start_time}','${a.end_time}')">
-              ${alreadyAllocated ? '✓ Allocated' : 'Allocate'}
+              ${alreadyAllocated ? '✓' : 'Allocate'}
             </button>
+            <button class="btn btn-sm btn-ghost" style="padding:2px 6px; flex-shrink:0;"
+                    onclick="openEditAvailModal('${a.id}','${block.id}','${a.start_time}','${a.end_time}','${(a.notes||'').replace(/'/g,'\\')}')">✎</button>
+            <button class="btn btn-sm btn-ghost" style="padding:2px 6px; color:var(--red); flex-shrink:0;"
+                    onclick="deleteAvailEntry('${a.id}','${block.id}')">✕</button>
           </div>`;
         }).join('')}
       </div>` : '';
@@ -1437,27 +1513,100 @@ async function loadTeamTraining() {
         const total = userData.entries.reduce((sum, e) => sum + e.hours, 0);
         return `
           <div class="card" style="margin-bottom:12px;">
-            <div style="font-weight:600; margin-bottom:8px;">
+            <div style="font-weight:600; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
               ${userData.name}
               <span style="float:right; font-size:12px; color:var(--text-muted);">
                 <strong>${total}h</strong> total
               </span>
             </div>
             ${userData.entries.map(e => `
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-top:1px solid var(--border); font-size:13px;">
-                <div>
+              <div style="display:flex; align-items:center; gap:8px; padding:6px 0; border-top:1px solid var(--border); font-size:13px;">
+                <div style="flex:1;">
                   ${CFR.fmtDate(e.date)} · ${e.hours}h
                   ${e.description ? ` — ${e.description}` : ''}
                 </div>
                 <span class="badge badge-${typeColor[e.type] || 'grey'}" style="flex-shrink:0;">
                   ${typeLabel[e.type] || e.type}
                 </span>
+                <button class="btn btn-ghost btn-sm" style="color:var(--red); flex-shrink:0; padding:2px 6px;"
+                        onclick="deleteTrainingEntry('${e.id}','${e.date}')">✕</button>
               </div>`).join('')}
           </div>`;
       }).join('');
   } catch (e) {
     list.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">⚠</span>${e.message}</div>`;
   }
+}
+
+async function deleteTrainingEntry(id, date) {
+  if (!confirm('Delete this training entry?')) return;
+  try {
+    await CFR.apiDelete(`/api/training?id=${id}&date=${date}`);
+    CFR.toast('Entry deleted.', 'success');
+    loadTeamTraining();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+function openLogTrainingModal() {
+  // Populate responder dropdown from loaded user list
+  const sel = document.getElementById('lt-responder');
+  sel.innerHTML = '<option value="">Select responder…</option>' +
+    _users.map(u => `<option value="${u.access_key}" data-name="${u.name}">${u.name}</option>`).join('');
+  document.getElementById('lt-date').value  = CFR.todayISO();
+  document.getElementById('lt-hours').value = '';
+  document.getElementById('lt-type').value  = 'mandatory';
+  document.getElementById('lt-desc').value  = '';
+  document.getElementById('log-training-modal').classList.remove('hidden');
+}
+
+async function saveLogTraining() {
+  const sel   = document.getElementById('lt-responder');
+  const uid   = sel.value;
+  const uname = sel.options[sel.selectedIndex]?.dataset?.name || '';
+  const date  = document.getElementById('lt-date').value;
+  const hours = parseFloat(document.getElementById('lt-hours').value);
+  const type  = document.getElementById('lt-type').value;
+  const desc  = document.getElementById('lt-desc').value.trim();
+
+  if (!uid)            { CFR.toast('Select a responder.', 'warning'); return; }
+  if (!date)           { CFR.toast('Select a date.', 'warning'); return; }
+  if (!hours || hours <= 0) { CFR.toast('Enter valid hours.', 'warning'); return; }
+
+  // Find the user's UUID (id field) from the loaded users list
+  const user = _users.find(u => u.access_key === uid);
+  try {
+    await CFR.apiPost('/api/training', {
+      date, hours, type, description: desc,
+      target_user_id:   user?.id || uid,
+      target_user_name: uname,
+    });
+    document.getElementById('log-training-modal').classList.add('hidden');
+    CFR.toast('Training logged.', 'success');
+    loadTeamTraining();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
+  }
+}
+
+function exportTrainingCSV() {
+  const from = document.getElementById('training-from').value;
+  const to   = document.getElementById('training-to').value;
+  const params = new URLSearchParams();
+  if (from) params.set('from', from);
+  if (to)   params.set('to', to);
+  fetch(`/api/training/export?${params}`, {
+    headers: { Authorization: `Bearer ${CFR.getAccessKey()}` },
+  }).then(r => {
+    if (!r.ok) { CFR.toast('Export failed.', 'error'); return; }
+    return r.blob().then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `training-export.csv`;
+      a.click();
+    });
+  }).catch(() => CFR.toast('Export failed.', 'error'));
 }
 
 // ── Init ──────────────────────────────────────────────────────────────────────
@@ -1490,37 +1639,114 @@ async function loadEquipmentTab() {
   await Promise.all([loadEquipmentReport(), loadDefibs(), loadBleedKits()]);
 }
 
+function _statusDot(flag, overdue) {
+  if (overdue)           return '<span style="color:var(--red);">●</span>';
+  if (flag === 'expired' || flag === 'critical') return '<span style="color:var(--red);">●</span>';
+  if (flag === 'warn')   return '<span style="color:#d97706;">●</span>';
+  return '<span style="color:var(--green);">●</span>';
+}
+
+function _expiryCell(yyyyMM, flag) {
+  if (!yyyyMM) return '<span style="color:var(--text-muted);">—</span>';
+  const color = flag === 'expired' || flag === 'critical' ? 'var(--red)' : flag === 'warn' ? '#d97706' : 'inherit';
+  return `<span style="color:${color};">${yyyyMM}</span>`;
+}
+
 async function loadEquipmentReport() {
   const el = document.getElementById('equipment-report');
   try {
     const { defibs, bleed_kits } = await CFR.apiGet('/api/defibs/report');
-    const alerts = [];
 
-    const defibAlerts = defibs.filter(d => d.open_faults?.length || d.overdue ||
-      ['expired','critical','warn'].includes(d.pads_expiry_flag) ||
-      ['expired','critical','warn'].includes(d.battery_expiry_flag));
-    const bkAlerts = bleed_kits.filter(b => b.open_faults?.length || b.overdue ||
-      ['expired','critical','warn'].includes(b.kit_expiry_flag));
+    const defibRows = defibs.map(d => {
+      const worst = d.open_faults?.length || d.pads_expiry_flag === 'expired' || d.battery_expiry_flag === 'expired'
+        ? 'expired' : d.pads_expiry_flag === 'critical' || d.battery_expiry_flag === 'critical'
+        ? 'critical' : d.pads_expiry_flag === 'warn' || d.battery_expiry_flag === 'warn'
+        ? 'warn' : null;
+      const dot = _statusDot(worst, d.overdue);
+      const lastDate = d.last_check?.checked_at ? CFR.fmtDate(d.last_check.checked_at.slice(0,10)) : '—';
+      const faults   = d.open_faults?.length ? `<br><span style="color:var(--red);font-size:11px;">${d.open_faults.join(', ')}</span>` : '';
+      return `<tr style="cursor:pointer;" onclick="showCheckHistory('defib','${d.uuid}','${d.group_id}')">
+        <td>${dot} ${d.group_id}</td>
+        <td style="font-size:12px;">${d.location}${faults}</td>
+        <td style="font-size:12px;">${lastDate}${d.overdue ? ' <span style="color:var(--red);font-size:11px;">overdue</span>' : ''}</td>
+        <td style="font-size:12px;">${_expiryCell(d.last_check?.pads_expiry, d.pads_expiry_flag)}</td>
+        <td style="font-size:12px;">${_expiryCell(d.last_check?.battery_expiry, d.battery_expiry_flag)}</td>
+      </tr>`;
+    }).join('');
 
-    for (const d of defibAlerts) {
-      const sev = d.open_faults?.length || d.pads_expiry_flag === 'expired' || d.battery_expiry_flag === 'expired' ? 'danger' : 'warning';
-      const detail = d.open_faults?.length ? d.open_faults.join(', ') :
-        d.overdue ? 'Overdue for check' :
-        `Expiring: pads ${d.last_check?.pads_expiry || '?'}${d.last_check?.battery_expiry ? ', battery ' + d.last_check.battery_expiry : ''}`;
-      alerts.push(`<div class="alert alert-${sev}" style="margin-bottom:6px;"><span class="alert-icon">⚠</span><div><strong>${d.group_id}</strong> — ${detail}</div></div>`);
-    }
-    for (const b of bkAlerts) {
-      const sev = b.open_faults?.length || b.kit_expiry_flag === 'expired' ? 'danger' : 'warning';
-      const detail = b.open_faults?.length ? b.open_faults.join(', ') :
-        b.overdue ? 'Overdue for check' : `Expiring: kit ${b.last_check?.kit_expiry || '?'}`;
-      alerts.push(`<div class="alert alert-${sev}" style="margin-bottom:6px;"><span class="alert-icon">⚠</span><div><strong>${b.group_id}</strong> (bleed kit) — ${detail}</div></div>`);
-    }
+    const bkRows = bleed_kits.map(b => {
+      const dot      = _statusDot(b.kit_expiry_flag, b.overdue);
+      const lastDate = b.last_check?.checked_at ? CFR.fmtDate(b.last_check.checked_at.slice(0,10)) : '—';
+      const faults   = b.open_faults?.length ? `<br><span style="color:var(--red);font-size:11px;">${b.open_faults.join(', ')}</span>` : '';
+      return `<tr style="cursor:pointer;" onclick="showCheckHistory('bleed_kit','${b.uuid}','${b.group_id}')">
+        <td>${dot} ${b.group_id}</td>
+        <td style="font-size:12px;">${b.location}${faults}</td>
+        <td style="font-size:12px;">${lastDate}${b.overdue ? ' <span style="color:var(--red);font-size:11px;">overdue</span>' : ''}</td>
+        <td style="font-size:12px;" colspan="2">${_expiryCell(b.last_check?.kit_expiry, b.kit_expiry_flag)}</td>
+      </tr>`;
+    }).join('');
 
-    el.innerHTML = alerts.length
-      ? alerts.join('')
-      : '<p style="color:var(--text-muted); font-size:14px; margin:0;">All equipment OK — no faults or upcoming expiries.</p>';
+    el.innerHTML = `
+      <div class="table-wrap" style="margin-bottom:12px;">
+        <table class="data-table">
+          <thead><tr><th>Device</th><th>Location</th><th>Last Check</th><th>Pads</th><th>Battery</th></tr></thead>
+          <tbody>${defibRows || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No defibrillators</td></tr>'}</tbody>
+        </table>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Bleed Kit</th><th>Location</th><th>Last Check</th><th colspan="2">Kit Expiry</th></tr></thead>
+          <tbody>${bkRows || '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);">No bleed kits</td></tr>'}</tbody>
+        </table>
+      </div>
+      <p style="font-size:11px; color:var(--text-muted); margin-top:6px;">Click any row to see check history.</p>`;
   } catch (e) {
     el.innerHTML = `<p style="color:var(--text-muted); font-size:14px; margin:0;">Unable to load report.</p>`;
+  }
+}
+
+async function showCheckHistory(deviceType, uuid, label) {
+  const panel = document.getElementById('check-history-panel');
+  const list  = document.getElementById('check-history-list');
+  document.getElementById('check-history-title').textContent = `Check History — ${label}`;
+  list.innerHTML = '<div class="loading"><div class="spinner"></div>Loading…</div>';
+  panel.classList.remove('hidden');
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+  try {
+    const endpoint = deviceType === 'defib'
+      ? `/api/defibs/${uuid}/checks?limit=10`
+      : `/api/bleed-kits/${uuid}/checks?limit=10`;
+    const data = await CFR.apiGet(endpoint);
+    const checks = data.checks || [];
+    if (!checks.length) {
+      list.innerHTML = '<p style="color:var(--text-muted); font-size:14px;">No checks recorded yet.</p>';
+      return;
+    }
+    list.innerHTML = checks.map(c => {
+      const ok     = !c.faults?.length;
+      const dot    = ok ? '<span style="color:var(--green);">●</span>' : '<span style="color:var(--red);">●</span>';
+      const faults = c.faults?.length ? `<div style="color:var(--red); font-size:12px; margin-top:2px;">${c.faults.join(', ')}</div>` : '';
+      return `
+        <div style="padding:8px 0; border-top:1px solid var(--border);">
+          <div style="display:flex; align-items:center; gap:8px; font-size:13px;">
+            ${dot}
+            <strong>${CFR.fmtDate(c.checked_at?.slice(0,10))}</strong>
+            <span style="color:var(--text-muted);">by ${c.checker_name || '—'}</span>
+          </div>
+          ${deviceType === 'defib' ? `
+            <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+              Pads: ${c.pads_expiry || '—'} · Battery: ${c.battery_expiry || '—'}
+            </div>` : `
+            <div style="font-size:12px; color:var(--text-muted); margin-top:3px;">
+              Kit expiry: ${c.kit_expiry || '—'}
+            </div>`}
+          ${faults}
+          ${c.notes ? `<div style="font-size:12px; color:var(--text-muted);">${c.notes}</div>` : ''}
+        </div>`;
+    }).join('');
+  } catch (e) {
+    list.innerHTML = `<p style="color:var(--red); font-size:14px;">${e.message}</p>`;
   }
 }
 

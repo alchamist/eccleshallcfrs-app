@@ -78,7 +78,7 @@ async function loadHistory() {
               <span style="float:right;"><strong>${totalHours}h</strong></span>
             </div>
             ${items.map(e => `
-              <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-top:1px solid var(--border);">
+              <div style="display:flex; align-items:center; gap:8px; padding:8px 0; border-top:1px solid var(--border);">
                 <div style="flex:1;">
                   <div style="font-size:14px;">
                     <strong>${CFR.fmtDate(e.date)}</strong> · ${e.hours}h
@@ -88,11 +88,24 @@ async function loadHistory() {
                 <span class="badge badge-${typeColor[e.type] || 'grey'}" style="flex-shrink:0;">
                   ${typeLabel[e.type] || e.type}
                 </span>
+                <button class="btn btn-ghost btn-sm" style="color:var(--red); flex-shrink:0;"
+                        onclick="deleteEntry('${e.id}','${e.date}')">✕</button>
               </div>`).join('')}
           </div>`;
       }).join('');
   } catch (e) {
     container.innerHTML = `<div class="alert alert-danger"><span class="alert-icon">⚠</span>${e.message}</div>`;
+  }
+}
+
+async function deleteEntry(id, date) {
+  if (!confirm('Delete this training entry?')) return;
+  try {
+    await CFR.apiDelete(`/api/training?id=${id}&date=${date}`);
+    CFR.toast('Entry deleted.', 'success');
+    loadHistory();
+  } catch (e) {
+    CFR.toast(e.message, 'error');
   }
 }
 

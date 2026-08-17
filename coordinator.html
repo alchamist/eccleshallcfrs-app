@@ -481,25 +481,73 @@
     </div>
 
     <div id="tab-training" class="hidden">
-      <div style="display:flex; gap:6px; margin-bottom:12px;">
-        <input id="training-from" class="form-input flex-1" type="date" onchange="loadTeamTraining()">
-        <input id="training-to"   class="form-input flex-1" type="date" onchange="loadTeamTraining()">
+      <div style="display:flex; gap:6px; margin-bottom:12px; flex-wrap:wrap;">
+        <input id="training-from" class="form-input" style="flex:1; min-width:120px;" type="date" onchange="loadTeamTraining()">
+        <input id="training-to"   class="form-input" style="flex:1; min-width:120px;" type="date" onchange="loadTeamTraining()">
+        <button class="btn btn-ghost btn-sm" onclick="exportTrainingCSV()">Export CSV</button>
+        <button class="btn btn-primary btn-sm" onclick="openLogTrainingModal()">+ Log Training</button>
       </div>
       <div id="training-list">
         <div class="loading"><div class="spinner"></div>Loading…</div>
       </div>
     </div>
 
+    <!-- Log Training modal -->
+    <div id="log-training-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+      <div class="modal-box" onclick="event.stopPropagation()">
+        <div class="modal-header">
+          <h3 class="modal-title">Log Training</h3>
+          <button class="modal-close" onclick="document.getElementById('log-training-modal').classList.add('hidden')">✕</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Responder <span class="req">*</span></label>
+          <select id="lt-responder" class="form-select">
+            <option value="">Select responder…</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Date <span class="req">*</span></label>
+          <input id="lt-date" class="form-input" type="date">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Hours <span class="req">*</span></label>
+          <input id="lt-hours" class="form-input" type="number" min="0.5" max="24" step="0.5" placeholder="e.g. 4">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type</label>
+          <select id="lt-type" class="form-select">
+            <option value="mandatory">Mandatory</option>
+            <option value="optional">Optional</option>
+            <option value="refresher">Refresher</option>
+          </select>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label">Description</label>
+          <input id="lt-desc" class="form-input" type="text" placeholder="e.g. WMAS Clinical Skills Day">
+        </div>
+        <hr class="divider">
+        <button class="btn btn-primary btn-block" onclick="saveLogTraining()">Save</button>
+      </div>
+    </div>
+
     <!-- Equipment tab -->
     <div id="tab-equipment" class="hidden">
 
-      <!-- Expiry / fault report -->
+      <!-- Compliance status table -->
       <div class="card" style="margin-bottom:16px;">
-        <p class="card-title">Equipment Report</p>
-        <p class="card-subtitle">Devices with open faults or consumables expiring within 30 days.</p>
+        <p class="card-title">Compliance Status</p>
         <div id="equipment-report">
           <div class="loading"><div class="spinner"></div>Loading…</div>
         </div>
+      </div>
+
+      <!-- Check history panel (shown on device click) -->
+      <div id="check-history-panel" class="card hidden" style="margin-bottom:16px;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <p class="card-title" style="margin:0;" id="check-history-title">Check History</p>
+          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('check-history-panel').classList.add('hidden')">✕ Close</button>
+        </div>
+        <div id="check-history-list"></div>
       </div>
 
       <!-- Defibs registry -->
@@ -818,6 +866,32 @@
         <button class="btn btn-primary flex-1" onclick="saveBlockEdit()">Save Changes</button>
         <button class="btn btn-ghost" onclick="closeBlockEditModal()">Cancel</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Edit availability entry modal -->
+  <div id="edit-avail-modal" class="modal-overlay hidden" onclick="if(event.target===this)this.classList.add('hidden')">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Availability</h3>
+        <button class="modal-close" onclick="document.getElementById('edit-avail-modal').classList.add('hidden')">✕</button>
+      </div>
+      <input type="hidden" id="edit-avail-id">
+      <input type="hidden" id="edit-avail-block-id">
+      <div class="form-group">
+        <label class="form-label">Start Time</label>
+        <input id="edit-avail-start" class="form-input" type="time">
+      </div>
+      <div class="form-group">
+        <label class="form-label">End Time</label>
+        <input id="edit-avail-end" class="form-input" type="time">
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label">Notes</label>
+        <input id="edit-avail-notes" class="form-input" type="text" placeholder="Optional">
+      </div>
+      <hr class="divider">
+      <button class="btn btn-primary btn-block" onclick="saveAvailEdit()">Save</button>
     </div>
   </div>
 

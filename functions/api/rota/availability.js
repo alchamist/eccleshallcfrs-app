@@ -53,6 +53,33 @@ export async function onRequestPost({ request, env, data }) {
   return Response.json({ entry }, { status: 201 });
 }
 
+export async function onRequestPatch({ request, env, data }) {
+  const { user } = data;
+  const isCoord = user.roles?.includes('coordinator');
+  if (!isCoord) return Response.json({ error: 'Coordinator role required' }, { status: 403 });
+
+  let body;
+  try { body = await request.json(); } catch {
+    return Response.json({ error: 'Invalid JSON' }, { status: 400 });
+  }
+
+  const { id, block_id, start_time, end_time, notes } = body;
+  if (!id || !block_id) return Response.json({ error: 'id and block_id required' }, { status: 400 });
+
+  const key   = `rota_avail:${block_id}:${id}`;
+  const entry = await env.CFR_DATA.get(key, { type: 'json' });
+  if (!entry) return Response.json({ error: 'Entry not found' }, { status: 404 });
+
+  if (start_time !== undefined) entry.start_time = start_time;
+  if (end_time !== undefined)   entry.end_time   = end_time;
+  if (notes !== undefined)      entry.notes      = notes;
+  entry.updated_at = new Date().toISOString();
+  entry.updated_by = user.id;
+
+  await env.CFR_DATA.put(key, JSON.stringify(entry));
+  return Response.json({ entry });
+}
+
 export async function onRequestDelete({ request, env, data }) {
   const { user } = data;
   const url      = new URL(request.url);
