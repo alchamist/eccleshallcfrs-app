@@ -38,16 +38,3 @@ jobs:
         run: |
           cp wrangler.lichfield.toml wrangler.toml
           wrangler pages deploy . --project-name lichfieldcfrs-app
-
-  deploy-emailtest:
-    name: Deploy Email Test CFRs
-    runs-on: ubuntu-latest
-    if: github.event_name != 'workflow_dispatch' || github.event.inputs.group == 'all' || github.event.inputs.group == 'emailtest'
-    steps:
-      - uses: actions/checkout@v4
-      - name: Install Wrangler
-        run: npm install -g wrangler
-      - name: Deploy to emailtestcfrs-app
-        run: |
-          cp wrangler.emailtest.toml wrangler.toml
-          wrangler pages deploy . --project-name emailtestcfrs-app
