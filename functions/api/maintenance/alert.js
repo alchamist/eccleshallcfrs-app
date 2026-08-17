@@ -1,17 +1,18 @@
 // POST /api/maintenance/alert — coordinator only
 // Sends an email summarising overdue/upcoming maintenance items.
-// Recipient: config:vehicle.coordinator_email (set via coordinator settings), falling back to COORDINATOR_EMAIL env secret.
+// Recipient: the logged-in coordinator's profile email, falling back to COORDINATOR_EMAIL env secret.
 
 export async function onRequestPost({ env, data }) {
   if (!data.user.roles?.includes('coordinator')) {
     return Response.json({ error: 'Coordinator role required' }, { status: 403 });
   }
 
-  const config = await env.CFR_DATA.get('config:vehicle', { type: 'json' }) || {};
-  const email  = config.coordinator_email || env.COORDINATOR_EMAIL;
+  const email = data.user.email || env.COORDINATOR_EMAIL;
   if (!email) {
-    return Response.json({ error: 'No coordinator email configured. Set one in Vehicle Settings.' }, { status: 503 });
+    return Response.json({ error: 'No email address on your profile. Add one via the Users tab.' }, { status: 503 });
   }
+
+  const config = await env.CFR_DATA.get('config:vehicle', { type: 'json' }) || {};
   const schemeName = config.scheme_name || 'CFR';
   const callsign   = config.callsign   || '';
   const m = config.maintenance || {};
