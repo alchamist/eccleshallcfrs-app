@@ -195,6 +195,19 @@
     @media (max-width: 900px) {
       .wb-compliance-row { grid-template-columns: repeat(3, 1fr); }
       .wb-info-row        { grid-template-columns: 1fr; }
+
+      /* Allow scrolling on mobile — the fixed-viewport layout is for TV displays only */
+      body        { height: auto; min-height: 100dvh; overflow-y: auto; }
+      #dashboard  { height: auto; min-height: 100dvh; }
+      .wb-main    { flex: none; }
+      .wb-panel   { overflow: visible; }
+    }
+
+    @media (max-width: 480px) {
+      .wb-compliance-row { grid-template-columns: repeat(2, 1fr); }
+      .wb-clock           { font-size: 24px; }
+      .wb-header          { padding: 10px 16px; }
+      .wb-main            { padding: 10px; gap: 10px; }
     }
   </style>
 </head>
